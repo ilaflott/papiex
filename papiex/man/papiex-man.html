@@ -1,0 +1,465 @@
+<HTML><HEAD>
+<TITLE>Manual Page - papiex(1)</TITLE>
+<BODY bgcolor=#F0F0F0 text=#000000 link=#0000ff vlink=#C000C0 alink=#ff0000><A NAME=top></A>
+<!-- .TH PAPIEX 1 "Oct 2015" -->
+<CENTER>
+<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>PAPIEX (1)</NOBR><HR></H1>
+</CENTER>
+<!-- .SH NAME -->
+<A name=0>
+
+     <H3>NAME</H3>
+
+</A>
+<BLOCKQUOTE>
+papiex - transparently measure hardware performance events of an application with PAPI
+<P>
+<!-- .SH SYNOPSIS -->
+</BLOCKQUOTE>
+<A name=contents></A><H3>CONTENTS</H3></A>
+<BLOCKQUOTE>
+<A HREF=#1>Synopsis</A><BR>
+<A HREF=#2>Description</A><BR>
+<A HREF=#3>Options</A><BR>
+<A HREF=#4>Examples</A><BR>
+<A HREF=#5>Notes</A><BR>
+<A HREF=#6>See Also</A><BR>
+<A HREF=#7>BUGS and KNOWN ISSUES</A><BR>
+<A HREF=#8>Authors</A><BR>
+<A HREF=#9>Copyright</A><BR>
+</BLOCKQUOTE>
+<A name=10>
+
+     <H3>SYNOPSIS</H3>
+
+</A>
+<BLOCKQUOTE>
+<P>
+<B>papiex</B> [<I>-dhisVqnwlUKISGQarx</I>] [<I>--classic</I>] [<I>-f output-dir</I>] [<I>-p prefix</I>] [<I>-o output-file</I>] [<I>-e papi-event</I>] [<I>-m[&lt;interval&gt;]</I>] [<I>-L papi-event</I>] [<I>--gnu</I>] [<I>--pathscale[=loop,func,all]</I>] [<I>-M [mpip_opts]</I>] [<I>--no-io-prof</I>] [<I>--no-threadsync-prof</I>] [--no-mpi-gather] [<I>--no-mpi-prof</I>] [<I>--no-summary</I>] [<I>--no-derived</I>] [<I>--no-scientific</I>] [<I>--no-ld-path</I>] [<I>--use-papi-presets</I>] [<I>--spec=spec-file] [--csv] [--] command [args ...]
+<P>
+</I><B>papiex</B> -- command args ...
+<P>
+<B>papiex</B> command
+<P>
+<P>
+<!-- .SH DESCRIPTION -->
+</BLOCKQUOTE>
+<A name=2>
+
+     <H3>DESCRIPTION</H3>
+
+</A>
+<BLOCKQUOTE>
+<B>papiex</B> is a PAPI-based program for measuring hardware performance events of an application using the command-line. It supports both PAPI preset events and native events. It supports multiple threads of execution as well, including pthreads and OpenMP threads. For MPI programs, <B>papiex</B> can gather statistics across tasks. <B>papiex</B> also measures the total time spent in I/O and MPI calls.
+<P>
+The default settings are equivalent to typing:
+<P>
+<B>papiex</B> -u -e PAPI_TOT_CYC -e PAPI_FP_INS
+<P>
+If your processor doesn&#146;t support counting of floating point operations (like the UltraSparc II and the original AMD Athlon) then PAPI_FP_INS or PAPI_TOT_INS is used instead (in order of availability).
+<P>
+<B>papiex</B> honors the environment variable <B>PAPIEX_DEFAULT_ARGS</B>. The contents of this variable are appended to the command-line arguments every time <B>papiex</B> is invoked. It is suggested that platform-wide arguments be set via this variable.
+<P>
+<!-- .SH OPTIONS -->
+</BLOCKQUOTE>
+<A name=3>
+
+     <H3>OPTIONS</H3>
+
+</A>
+<BLOCKQUOTE>
+<P>
+<!-- .TP -->
+<TABLE cellpadding=3>
+<TR valign=top><TD width=6% nowrap>
+<I>--</I>
+</TD><TD valign=bottom>
+This is the standard separator telling <B>papiex</B> to terminate its option processing and pass the rest of the command line to the underlying shell. Use this if your application takes command line arguments.
+<P>
+Example: <B>papiex</B> -- ls -a
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-a</I>
+</TD><TD valign=bottom>
+Monitor useful events available on the architecture automatically. This implicitly enables multiplexing (see the <I>-m</I> flag) and memory monitoring (see the <I>-x</I> flag). Please note, this flag is the source of many problems, and errors in counts. Do not use this flag, if all you need to measure is one or two events. Multiplexing adds overhead and count errors, so use with caution.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>--csv</I>
+</TD><TD valign=bottom>
+Output CSV suitable for easy parsing by other tools.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--classic</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Run papiex in the old classic mode. This option is provided for backwards compatibility. It may be removed in future releases. This option is silently ignored if <I>--csv</I> is used.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-d</I>
+</TD><TD valign=bottom>
+Enable debugging output. Repeat this option for more verbosity.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-e &lt;event&gt;</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Monitor the event as named. The event is a symbol as listed in the output from either the <I>-l</I> or <I>-L</I> flag. You may specify more than one event. If you specify more than the number of physical registers as listed with the <I>-i</I> flag, you must enable multiplexing with <I>-m</I> otherwise an error will be reported.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-f &lt;output directory&gt;</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+All output of <B>papiex</B> is created under the specified output directory. If the directory does not exist, it is created. By default, all output is placed under the working directory.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-h</I>
+</TD><TD valign=bottom>
+Print the usage information.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-i</I>
+</TD><TD valign=bottom>
+Print information about the host processor.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-I</I>
+</TD><TD valign=bottom>
+Measure hardware counters in transient mode. This mode may not be supported on your processor. Some CPU&#146;s execute interrupt/TLB miss handlers in an entirely different privelege level. If your processor does not support this level, you will get an error when <B>papiex</B> goes to set up the counters. See, also <I>-K</I>, <I>-U</I> and <I>-S</I> flags for other modes.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-K</I>
+</TD><TD valign=bottom>
+Measure hardware counters in kernel mode. See, also <I>-I</I>, <I>-U</I> and <I>-S</I> flags for other modes.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-l</I>
+</TD><TD valign=bottom>
+Print a list of the available PAPI presets and native events.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-L event</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Print a full description of event.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-m[&lt;interval&gt;]</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Enable counter multiplexing to measure more events than the number of physical counters available. The number of counters can be discovered with the <I>-i</I> flag. The interval is specified in Hz; it is optional and defaults to 10 (Hz). Please note, this flag is the source of many problems, and errors in counts. Do not use this flag, if all you need to measure is one or two events. Multiplexing adds overhead and count errors, so use with caution.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-M [mpiP options]</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Apart from measuring hardware events, load the mpiP library to measure MPI characteristics as well. The behavior is unspecified if the program doesn not use MPI. Optional arguments for the mpiP library may follow the <I>-M</I>. This option is only available if <B>papiex</B> was compiled with mpiP support.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-n</I>
+</TD><TD valign=bottom>
+Do NOT create ANY output files. By default, in addition to writing to the terminal, <B>papiex</B> creates files (and directories) containing its output. See, also <I>-w</I>. This argument is silently ignored unless <I>--classic</I> is also used.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-o &lt;output-file&gt;</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+By default <B>papiex</B> dumps it output in a file/directory named &lt;cmd&gt;.papiex.&lt;host&gt;.&lt;pid&gt;.&lt;instance&gt;. The <I>-o</I> flag, instead causes the output to be sent to the user-supplied path. For multithreaded and MPI runs, its behavior can seem confusing, and you probably should use <I>-f</I> instead.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-p &lt;prefix&gt;</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+By default <B>papiex</B> dumps it output in a file/directory named &lt;cmd&gt;.papiex.&lt;host&gt;.&lt;pid&gt;.&lt;instance&gt;. The <I>-p</I> flag causes &lt;prefix&gt; to be prepended to the output name. This is useful for MPI and multithreaded runs. For readibility, it is a good idea to have a separator, such as . (dot), at the end of your prefix.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-q</I>
+</TD><TD valign=bottom>
+Print information in a less verbose format. This is just the counter value followed by the counter name. The only additional information printed is the timing information and any thread identifiers. It is printed right justified with a width of 16 places. This option is currently not compatible with <I>-r</I>.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-r</I>
+</TD><TD valign=bottom>
+Report resources used by the program, as reported by <B>getrusage</B>(). Most of the time this doesn&#146;t work on Linux. This option is not compatible with <I>-q</I>.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-s</I>
+</TD><TD valign=bottom>
+This option simply dumps the environment variable/value pairs to stdout and then exits. This is often useful for debugging.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-S</I>
+</TD><TD valign=bottom>
+Measure hardware counters in supervisor mode. See, also <I>-I</I>, <I>-U</I> and <I>-K</I> flags for other modes.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-U</I>
+</TD><TD valign=bottom>
+Measure hardware counters in user mode. This is the default counting mode. See, also <I>-I</I>, <I>-K</I> and <I>-S</I> flags for other modes.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-w</I>
+</TD><TD valign=bottom>
+Do NOT send output to the console. By default, in addition to writing files, <B>papiex</B> emits output to the terminal. See also, <I>-n</I>. This option is very useful unless <I>--classic</I> is also used.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-x</I>
+</TD><TD valign=bottom>
+Report memory information for the process. Not all statistics will be available on all Linux kernel versions. Currently reported are peak virtual, peak resident, text, library, heap, stack, shared and locked memory. Numbers are in KB. This option is not compatible with <I>-q</I>.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD width=6% nowrap>
+<I>-V</I>
+</TD><TD valign=bottom>
+Print the version information of <B>papiex</B>, the PAPI library and the PAPI header file <B>papiex</B> was built against.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-G --gnu</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+The <B>GCC</B> family has the capability to automatically instrument code through the use of -finstrument-functions on the compile line. <B>papiex</B> automatically detects such instrumentation points and uses them as caliper points. This option enables this behavior. Instrumentation is only possible if papiex is compiled with binutils support.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-Q --pathscale=[loop,func,all]</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+The <B>Pathscale</B> family has the capability to automatically instrument code through the use of -finstrument-functions on the compile line. <B>papiex</B> automatically detects such instrumentation points and uses them as caliper points. This option enables this behavior. If no argument is given with this option, then <I>all</I> is assumed. Instrumentation is only possible if papiex is compiled with binutils support.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-io-prof</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Do not profile I/O. See the NOTES section for the list of instrumented calls. I/O profiling is enabled by default, when papiex is compiled with profiling support. This flag is only meaningful when profiling support is enabled at compile-time.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-threadsync-prof</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Do not profile thread synchronization functions and mutexes. See the NOTES section for the list of instrumented calls. Thread profiling is enabled by default, when papiex is compiled with profiling support. This flag is only meaningful when profiling support is enabled at compile-time.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-mpi-prof</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Do not profile MPI. See the NOTES section for the list of instrumented calls.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-mpi-gather</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Do not use MPI to gather performance statistics across tasks. This option is only meaningful if the <I>--classic</I> mode is used, as the gather process is used to create global summary across all job ranks. This MPI gather can be a source of bugs in improperly written programs, and try using this option if you run into improper termination problems while using <I>--classic</I> in MPI programs.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-summary</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+For MPI and multithreaded runs this prevents <B>papiex</B> from printing a summary for data aggregated across threads/tasks.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-derived</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+This prevents <B>papiex</B> from calculating and printing useful derived metrics.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-scientific</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Disables printing output in scientific notation.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--no-ld-path</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Do not modify the LD_LIBRARY_PATH environment variable under any circumstances.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>--use-papi-presets</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Normally, with <I>-a</I>, papiex uses the most useful native events for an architecture. Only if <B>papiex</B> doesn&#146;t know your architecture, will it use PAPI presets. This tells papiex to instead use default PAPI presets even if it knows of native events for the architecture. Since the PAPI presets may be inaccurate, this option should not be used. This option is ignored unless <I>-a</I> is used.
+<P>
+<!-- .TP -->
+</TD></TR>
+<TR valign=top><TD colspan=2>
+<I>-E --spec=spec-file</I>
+</TD></TR><TR valign=top><TD width=6%>&nbsp;</TD><TD>
+Use the spec file at the user-supplied path instead of the standard one. Presumably, the user-supplied spec file has been customized to suit the user.
+<P>
+<!-- .SH EXAMPLES -->
+</TD></TR>
+<TR></TR></TABLE></BLOCKQUOTE>
+<A name=4>
+
+     <H3>EXAMPLES</H3>
+
+</A>
+<BLOCKQUOTE>
+The simplest use of <B>papiex</B> on a unithreaded, single process program, would be as:
+<P>
+<B>papiex</B> /bin/ls
+<P>
+In the above case, the performance measurement of PAPI_TOT_CYC would be written to a raw counts file. Additionally, a report will be generated with useful metrics like IPC (instructions per cycle).
+<P>
+To monitor specific events explicitly, one would do:
+<P>
+<B>papiex</B> -e PAPI_L1_DCM -e PAPI_L1_TCM /bin/ls
+<P>
+For multithreaded programs, you would simply invoke <B>papiex</B> as above; the multiple threads are automatically handled. The output is written into a directory named &lt;cmd&gt;.papiex.&lt;host&gt;.&lt;pid&gt;.&lt;instance&gt;. The directory will contain 2 files for each thread: a raw counts file, and a derived metrics file. Additionally, a summary file will be generated for data across all threads.
+<P>
+<P>
+Multiple task programs using MPI are automatically handled by <B>papiex</B>, as in:
+<P>
+<B>mpirun</B> -np 4 <B>papiex</B> -f /tmp ./pop
+<P>
+In the above example, the output data files are stored in /tmp/pop.papiex.&lt;host&gt;.&lt;pid&gt;.&lt;instance&gt;. Summary statistics are generated across tasks, which may be disabled using <I>--no-summary</I>. The output files can be easily related to the host by the hostname embedded in the file name.
+<P>
+You can also give a prefix to the output path. For e.g.,
+<P>
+<B>papiex</B> -f mystats. my-threaded-prog
+<P>
+The command above will create a directory ./mystats.my-threaded-prog.papiex.&lt;host&gt;.&lt;pid&gt;.&lt;instance&gt;. For multithreaded and/or MPI programs, <B>papiex</B> creates per-thread/per-task and global statistics summaries across threads/tasks, which are stored this directory.
+<P>
+To facilitate ease of use, the <I>-a</I> flag is provided. This allows automatic monitoring of available interesting events. To enable multiple events to be monitored with limited counters, multiplexing (<I>-m</I>) is implicitly assumed. The flag also works for multihreaded and MPI programs. For any run more than a few minutes, it is <B>recommended</B> that you start your quest for understanding performance with <B>papiex -a</B>. E.g.,
+<P>
+<B>papiex</B> -a my-long-program
+<P>
+<P>
+To automatically instrument all the functions using an option provided by gcc, do:
+<P>
+<B>gcc</B> <B>-finstrument-functions</B> -o my-prog my-prog.c
+<P>
+And, now do:
+<P>
+<B>papiex</B> --gnu -a my-prog
+<P>
+Such automatic instrumentation can easily add substantial overhead on execution, particularly if functions are invoked in a loop. Automatic instrumentation requires <B>papiex</B> to be compiled with <I>binutils</I> support.
+<P>
+<P>
+<!-- .SH NOTES -->
+</BLOCKQUOTE>
+<A name=5>
+
+     <H3>NOTES</H3>
+
+</A>
+<BLOCKQUOTE>
+If <B>papiex</B> is compiled with profiling support, then the following calls are automatically instrumented:
+<P>
+<B>I/O</B> - fread, fwrite, read, write, readv, writev, send, sendto, sendmsg, recv, recvfrom, recvmsg and sendfile.
+<P>
+<B>Thread synchronization</B> - pthread_barrier_wait, pthread_mutex_lock, pthread_mutex_timedlock, omp_set_lock, omp_set_nest_lock, ompc_barrier, semop, semtimedop
+<P>
+<B>MPI</B> - MPI_Allgather, MPI_Allgatherv, MPI_Allreduce, MPI_Alltoall, MPI_Alltoallv, MPI_Barrier, MPI_Bcast, MPI_Bsend, MPI_Gather, MPI_Gatherv, MPI_Ibsend, MPI_Iprobe, MPI_Irecv, MPI_Irsend, MPI_Isend, MPI_Issend, MPI_Probe, MPI_Recv, MPI_Reduce, MPI_Reduce_scatter, MPI_Rsend, MPI_Scatter, MPI_Scatterv, MPI_Send, MPI_Sendrecv, MPI_Sendrecv_replace, MPI_Ssend, MPI_Start, MPI_Startall, MPI_Wait, MPI_Waitall, MPI_Waitany and MPI_Waitsome.
+<P>
+<P>
+<!-- .SH SEE ALSO -->
+</BLOCKQUOTE>
+<A name=6>
+
+     <H3>SEE ALSO</H3>
+
+</A>
+<BLOCKQUOTE>
+<B>
+fork(2),
+PAPI(3),
+getrusage(2),
+ld.so(8)
+</B>
+<P>
+<!-- .SH BUGS and KNOWN ISSUES -->
+</BLOCKQUOTE>
+<A name=7>
+
+     <H3>BUGS and KNOWN ISSUES</H3>
+
+</A>
+<BLOCKQUOTE>
+The <I>-a</I> and <I>-m</I> flags are the source of many errors introduced due to multiplexing. If you suspect the counts reported by <I>papiex</I>,<B> try running your program without -a and -m.</B>
+<P>
+If running percent in domain is much less that 100, try adding the flags <I>-UKIS</I>.
+<P>
+The <I>--classic</I> mode is often a source of bugs, particularly during the MPI gather phase. If you face problems in MPI programs try not using <I>--classic</I> or try using it with the <I>--no-mpi-gather</I> flag.
+<P>
+If your papiex is compiled with USE_MPI against a particular version/flavor of MPI, and you try running it on a program compiled against a different MPI version/flavor, your program will likely die a horrible death. In all cases ensure that the MPI your program was compiled against, the MPI papiex was compiled against, and the version of MPI you are running are identical.
+<P>
+<!-- .LP -->
+<P>
+Additional bugs should be reported to <B>papiex</B> support e-mail address, mentioned when you run <B>papiex</B> <I>-h</I>.
+<P>
+<!-- .SH AUTHORS -->
+</BLOCKQUOTE>
+<A name=8>
+
+     <H3>AUTHORS</H3>
+
+</A>
+<BLOCKQUOTE>
+<!-- .B papiex -->
+<B>papiex</B> was written by Philip J. Mucci and Tushar Mohan.
+<P>
+<!-- .SH COPYRIGHT -->
+</BLOCKQUOTE>
+<A name=9>
+
+     <H3>COPYRIGHT</H3>
+
+</A>
+<BLOCKQUOTE>
+This software is <B>COMPLETELY OPEN SOURCE</B>. If you incorporate any portion of this software, we would appreciate an acknowledgement in the appropriate places.
+</BLOCKQUOTE>
+<P><HR>
+<TABLE width=100%><TR> <TD width=33%><I></I></TD> <TD width=33% align=center>PAPIEX (1)</TD> <TD align=right width=33%><I>Oct 2015</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/download/manServer.shtml">manServer 1.07</A> from man/papiex.1 using man macros.</FONT>
+</BODY></HTML>
