@@ -16,21 +16,22 @@ MONITOR_PREFIX := $(DESTPREF)
 MONITOR_INC_PATH := $(MONITOR_PREFIX)/include
 MONITOR_LIB_PATH := $(MONITOR_PREFIX)/lib
 
-
 install: install-papiex post-install
 
+# disabled PROFILING_SUPPORT
 install-papiex: $(MONITOR_LIB_PATH)/libmonitor.so $(PAPI_LIB_PATH)/libpapi.so
-	cd papiex; $(MAKE) CC=$(CC) OCC=$(OCC) PROFILING_SUPPORT=1 FULL_CALIPER_DATA=1 MONITOR_INC_PATH=$(MONITOR_INC_PATH) PAPI_INC_PATH=$(DESTPREF)/include PAPI_LIB_PATH=$(DESTPREF)/lib PREFIX=$(DESTPREF) install
+	cd papiex; $(MAKE) CC=$(CC) OCC=$(OCC) FULL_CALIPER_DATA=1 MONITOR_INC_PATH=$(MONITOR_INC_PATH) MONITOR_LIB_PATH=$(MONITOR_LIB_PATH) PAPI_INC_PATH=$(PAPI_INC_PATH) PAPI_LIB_PATH=$(PAPI_LIB_PATH) PREFIX=$(DESTPREF) install
 
 $(MONITOR_LIB_PATH)/libmonitor.so: 
 	cd monitor; ./configure --prefix=$(DESTPREF)
 	cd monitor; $(MAKE) PREFIX=$(DESTPREF) install
 
-$(PAPI_LIB_PATH)/libpapi.so: $(DESTPREF)/lib/libpfm.so
+$(PAPI_LIB_PATH)/libpapi.so: $(PWD)/lib/libpfm.a
 	cd papi/src ; ./configure $(PAPI_CONFIGURE_ARGS)
 	$(MAKE) -C papi/src all install install-man
 
-$(DESTPREF)/lib/libpfm.so:
+$(PWD)/lib/libpfm.a:
+	$(MAKE) -C libpfm PREFIX=$(DESTPREF) LDCONFIG=true all
 	$(MAKE) -C libpfm PREFIX=$(DESTPREF) EXAMPLESDIR=$(DESTPREF)/bin LDCONFIG=true install
 	$(MAKE) -C libpfm/examples EXAMPLESDIR=$(DESTPREF)/bin LDCONFIG=true install_examples 
 
@@ -64,6 +65,17 @@ post-install:
 	@echo "source $(DESTPREF)/tools-oss.sh"
 	@echo "	   - or -"
 	@echo "source $(DESTPREF)/tools-oss.csh"
+	@echo
+	@echo "To test install:"
+	@echo "make test"
+	@echo "make fulltest"
 	@echo =======================================================================
 	@echo
 
+.PHONY: test
+test:
+	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/tools-oss.sh; cd papiex; make quicktest'
+
+.PHONY: fulltest
+fulltest:
+	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/tools-oss.sh; cd papiex; make test'
