@@ -7,17 +7,20 @@ VERSION := 1.0.1
 PREFIX := $(PWD)/tools-oss-$(VERSION)
 DESTPREF := $(PREFIX)
 
-DEPS =
+LIBMONITOR := $(DESTPREF)/lib/libmonitor.so
+LIBPFM := $(PWD)/lib/libpfm.a
+LIBPAPI := $(DESTPREF)/lib/libpapi.so
 
+DEPS =
 ifeq (,$(MONITOR_INC_PATH))
   ifeq (,$(MONITOR_LIB_PATH))
-    DEPS += install-monitor
+    DEPS += $(LIBMONITOR)
   endif
 endif
 
 ifeq (,$(PAPI_INC_PATH))
   ifeq (,$(PAPI_LIB_PATH))
-    DEPS += install-papi
+    DEPS += $(LIBPFM) $(LIBPAPI)
   endif
 endif
 
@@ -30,6 +33,8 @@ MONITOR_PREFIX := $(DESTPREF)
 MONITOR_INC_PATH ?= $(MONITOR_PREFIX)/include
 MONITOR_LIB_PATH ?= $(MONITOR_PREFIX)/lib
 
+
+
 install: install-papiex post-install
 
 # disabled PROFILING_SUPPORT
@@ -37,16 +42,17 @@ install-papiex: $(DEPS)
 	cd papiex; $(MAKE) CC=$(CC) OCC=$(OCC) FULL_CALIPER_DATA=1 MONITOR_INC_PATH=$(MONITOR_INC_PATH) MONITOR_LIB_PATH=$(MONITOR_LIB_PATH) PAPI_INC_PATH=$(PAPI_INC_PATH) PAPI_LIB_PATH=$(PAPI_LIB_PATH) PREFIX=$(DESTPREF) install
 
 .PHONY: install-monitor
-install-monitor: 
+$(LIBMONITOR) install-monitor:
 	cd monitor; ./configure --prefix=$(DESTPREF)
 	cd monitor; $(MAKE) PREFIX=$(DESTPREF) install
 
 .PHONY: install-papi
-install-papi: $(PWD)/lib/libpfm.a
+$(LIBPAPI) install-papi:
 	cd papi/src ; ./configure $(PAPI_CONFIGURE_ARGS)
 	$(MAKE) -C papi/src all install install-man
 
-$(PWD)/lib/libpfm.a:
+.PHONY: install-libpfm
+$(LIBPFM) install-libpfm:
 	$(MAKE) -C libpfm PREFIX=$(DESTPREF) LDCONFIG=true all
 	$(MAKE) -C libpfm PREFIX=$(DESTPREF) EXAMPLESDIR=$(DESTPREF)/bin LDCONFIG=true install
 	$(MAKE) -C libpfm/examples EXAMPLESDIR=$(DESTPREF)/bin LDCONFIG=true install_examples 
@@ -63,7 +69,8 @@ distclean clobber: clean
 	@if [ -d papi ]; then rm -f papi/src/Makefile; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -f Makefile ] || make distclean; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -x configure ] || rm -fv Makefile; fi
-	$(MAKE) -C libpfm distclean 
+	$(MAKE) -C libpfm distclean
+	rm -rf $(DESTPREF)
 
 .PHONY: post-install
 post-install:

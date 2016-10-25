@@ -6,7 +6,8 @@ tool="papiex"
 tool_args="-a"
 
 echo "$TEST: $comment"
-for exe in pthreads badpthreads badpthreads2; do
+#for exe in pthreads badpthreads badpthreads2; do
+for exe in pthreads; do
   rm -rf $exe.*$tool*
   echo "  Testing $exe"
   [ $DEBUG -eq 0 ] || echo "  $tool $tool_args ./$exe"
