@@ -3,7 +3,7 @@
 **PapiEx** provides a command-line interface to [PAPI](http://icl.cs.utk.edu/papi/)
 
 To build and install PapiEx, see [INSTALL.md](INSTALL.md). For a copy of the license,
-see the [LICENSE](LICENSE) file in the same directory.
+see the [COPYING](COPYING) file in the same directory.
 
 Table of Contents
 =================

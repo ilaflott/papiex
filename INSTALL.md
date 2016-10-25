@@ -34,16 +34,16 @@ Similarly you can use `MONITOR_INC_PATH` and `MONITOR_LIB_PATH` to
 use an existing libmonitor. Please note papiex uses a version of 
 monitor that comes out of the SciDAC project.
 
-    Build time arguments that are honored:
+Build time arguments that are honored:
 
-    * `MONITOR_PREFIX`, `MONITOR_INC_PATH`, and `MONITOR_LIB_PATH`
-    * `PAPI_PREFIX`, `PAPI_INC_PATH`, and `PAPI_LIB_PATH`
-    * `PROFILING_SUPPORT=1` to count I/O, MPI and thread-synchronization cycles
-    * `USE_MPI=1` to build MPI tests
+ * `MONITOR_PREFIX`, `MONITOR_INC_PATH`, and `MONITOR_LIB_PATH`
+ * `PAPI_PREFIX`, `PAPI_INC_PATH`, and `PAPI_LIB_PATH`
+ * `PROFILING_SUPPORT=1` to count I/O, MPI and thread-synchronization cycles
+ * `USE_MPI=1` to build MPI tests
 	
-    Note, PapiEx works for MPI programs even if `USE_MPI` is unset. However,
-    adding USE_MPI builds tests for MPI, and if `PROFILING_SUPPORT=1` is set
-    then time spent in MPI is also reported. 
+Note, PapiEx works for MPI programs even if `USE_MPI` is unset. However,
+adding USE_MPI builds tests for MPI, and if `PROFILING_SUPPORT=1` is set
+then time spent in MPI is also reported. 
 
 To use papiex, see [README.md](README.md)
 
