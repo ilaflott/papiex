@@ -2,6 +2,9 @@
 
 **PapiEx** provides a command-line interface to [PAPI](http://icl.cs.utk.edu/papi/)
 
+To build and install PapiEx, see [INSTALL.md](INSTALL.md). For a copy of the license,
+see the [LICENSE](LICENSE) file in the same directory.
+
 Table of Contents
 =================
   * [Getting Started](#getting-started)
@@ -192,8 +195,9 @@ In the output report, scroll down to the section showing the raw event counts. Y
 See the high count for the `LSD` -- the loop stream detector -- yet a low count for arithmetic multiply instructions - `ARITH`. The time is spent in a floating-point loop(s) that contains 90% of the uOPS executed.
 
 ## MPI, IO and Thread Sync
-PapiEx automatically counts cycles spent across MPI and I/O calls.
-It also intercepts pthread calls to figure out time sent in synchronization regions.
+When PapiEx is built with `PROFILING_SUPPORT=1`, it automatically counts cycles 
+spent across MPI and I/O calls. It also intercepts pthread calls to figure out 
+time sent in synchronization regions.
 
 To run papiex for an MPI program, you would do so like:
 
