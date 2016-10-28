@@ -29,18 +29,21 @@ Build PapiEx
 ------------
 
 The easiest way to build and use papiex is to use the bundled
-PAPI and libmonitor. The `PREFIX` argument is optional.
+PAPI and libmonitor. The `PREFIX` argument is optional. If
+unset, the tools will be installed in a sub-directory under the
+working directory.
 
       $ make install PREFIX=/path/to/where/you/want/to/install/papiex 
+
+      $ make PREFIX=/same/prefix/used/make/install test
+
+      $ make PREFIX=/same/prefix/used/make/install fulltest
+
 
 To use an exisiting PAPI installation, and not use the bundled PAPI:
 
       $ make PAPI_INC_PATH=/path/to/papi/install/include \
              PAPI_LIB_PATH=/path/to/papi/install/lib
-
-      $ make test (optional)
-
-      $ make fulltest (optional)
 
 Similarly you can use `MONITOR_INC_PATH` and `MONITOR_LIB_PATH` to 
 use an existing libmonitor. Please note papiex uses a version of 
