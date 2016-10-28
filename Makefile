@@ -65,7 +65,7 @@ clean:
 .PHONY: distclean clobber
 distclean clobber: clean
 	@rm -rf papiex/x86_64-Linux
-	@if [ -d papi ]; then rm -f papi/src/Makefile; fi
+	@if [ -d papi ]; then rm -f papi/src/Makefile papi/src/papi.pc; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -f Makefile ] || make distclean; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -x configure ] || rm -fv Makefile; fi
 	$(MAKE) -C libpfm distclean
