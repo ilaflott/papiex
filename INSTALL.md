@@ -67,6 +67,13 @@ then time spent in MPI is also reported.
 To use papiex, see [README.md](README.md)
 
 
+Platforms Tested
+----------------
+
+ * Haswell (Xeon(R) CPU E5-2698 v3), gcc 4.9.3
+ * POWER8E, gcc 4.8.5
+
+
 Troubleshooting
 ---------------
 
