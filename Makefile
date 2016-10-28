@@ -68,8 +68,8 @@ distclean clobber: clean
 	@if [ -d papi ]; then rm -f papi/src/Makefile papi/src/papi.pc; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -f Makefile ] || make distclean; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -x configure ] || rm -fv Makefile; fi
-	$(MAKE) -C libpfm distclean
-	rm -rf $(DESTPREF)
+	@$(MAKE) -C libpfm distclean
+	@rm -rf papiex-oss-install
 
 .PHONY: post-install
 post-install:
