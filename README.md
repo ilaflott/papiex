@@ -7,6 +7,7 @@ see the [COPYING](COPYING) file in the same directory.
 
 Table of Contents
 =================
+  * [Setting the environment](#setting-the-environment)
   * [Getting Started](#getting-started)
   * [Preset and Native Events](#preset-and-native-events)
   * [Measurement Modes](#measurement-modes)
@@ -15,6 +16,18 @@ Table of Contents
   * [Task Memory and Resource Usage](#task-memory-and-resource-usage)
   * [Rank Mapping](#rank-mapping)
   * [Calipers](#calipers)
+  * [Bugs and support](#bugs-and-support)
+
+
+## Setting The Environment
+Before you can use papiex, you must set your environment.
+
+    $ source /path/to/papiex-oss-install/papiex-oss.sh (sh, Bourne, ksh)
+           - or -
+    $ source /path/to/papiex-oss-install/papiex-oss.csh (csh, tcsh)
+           - or -
+    $ module load /path/to/papiex-oss-install/papiex-oss (environment-modules)
+
 
 ##Getting Started
 In your quest to understand application performance, you may find PapiEx to be a good starting point.
@@ -46,7 +59,7 @@ Now let's run the program under PapiEx. The `-a` automatically selects useful ha
     Doing 1000000000 iters. of a += b * c on doubles.
     papiex:
     papiex: 0.9.8 (Build Oct  9 2015/14:17:42)
-    papiex: Send bug reports to perftools-bugs@minimalmetrics.com
+    papiex: Send bug reports to mmperftools-bugs@minimalmetrics.com
     papiex:
     papiex: Storing raw counts data in [basic.papiex.supermicro.26719.1.txt]
     papiex:
@@ -199,6 +212,9 @@ When PapiEx is built with `PROFILING_SUPPORT=1`, it automatically counts cycles
 spent across MPI and I/O calls. It also intercepts pthread calls to figure out 
 time sent in synchronization regions.
 
+To build papiex with profiling, edit the Makefile, and set `PROFILING_SUPPORT=1`
+on the `install-papiex` target. Then rebuild papiex, by typing `make`.
+
 To run papiex for an MPI program, you would do so like:
 
     $ mpirun <mpirun-args> papiex <papiex-args> exectuable <executable args>
@@ -261,6 +277,7 @@ The `Sum` field aggregates across all tasks. This is very useful when computing,
 aggregate floating-point operations across tasks in determining scaling behavior. The `CV` is
 coefficient of variation and is derived by dividing the standard deviation with the mean. It 
 provides a measure of imbalance.
+
 
 ## Task Memory and Resource Usage
 PapiEx provides stats on memory (`-x`) and resource usage (`-r`).
@@ -448,3 +465,12 @@ means that the TLB instruction misses in the caliper region `[2]` were
 When using calipers it is important to use them around regions that do
 run significant work. Our example of using it around a `printf` is not
 a good idea.    
+
+## Bugs and Support
+Papiex is supported on a voluntary basis, and as such we rely on 
+community participation to help find bugs and implement fixes.
+
+Please send your bug reports to: 
+
+    mmperftools-bugs@minimalmetrics.com
+

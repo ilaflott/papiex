@@ -11,15 +11,19 @@ LIBPFM := $(PWD)/lib/libpfm.a
 LIBPAPI := $(DESTPREF)/lib/libpapi.so
 
 DEPS =
-ifeq (,$(MONITOR_INC_PATH))
-  ifeq (,$(MONITOR_LIB_PATH))
-    DEPS += $(LIBMONITOR)
+ifeq (,$(MONITOR_PREFIX))
+  ifeq (,$(MONITOR_INC_PATH))
+    ifeq (,$(MONITOR_LIB_PATH))
+      DEPS += $(LIBMONITOR)
+    endif
   endif
 endif
 
-ifeq (,$(PAPI_INC_PATH))
-  ifeq (,$(PAPI_LIB_PATH))
-    DEPS += $(LIBPFM) $(LIBPAPI)
+ifeq (,$(PAPI_PREFIX))
+  ifeq (,$(PAPI_INC_PATH))
+    ifeq (,$(PAPI_LIB_PATH))
+      DEPS += $(LIBPFM) $(LIBPAPI)
+    endif
   endif
 endif
 
