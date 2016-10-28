@@ -96,8 +96,8 @@ post-install:
 
 .PHONY: test
 test:
-	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
+	bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
 
 .PHONY: fulltest
 fulltest:
-	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'
+	bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'
