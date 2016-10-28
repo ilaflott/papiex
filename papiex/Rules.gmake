@@ -146,7 +146,7 @@ install: all install-dirs install-native
 	cd man; install -m 0644 $(MANPAGES3) $(DESTDIR)$(MANDIR)/man3; 
 	cd man; install -m 0644 $(MANPAGES1) $(DESTDIR)$(MANDIR)/man1; 
 	cd man; install -m 0644 $(HTMLMANPAGES1) $(HTMLMANPAGES3) $(DESTDIR)$(DOCDIR)
-	install -m 0644 $(LIBNAME).html INSTALL.md BUGS.md $(DESTDIR)$(DOCDIR)
+	install -m 0644 $(LIBNAME).html BUGS.md $(DESTDIR)$(DOCDIR)
 
 .PHONY: uninstall
 uninstall: uninstall-native

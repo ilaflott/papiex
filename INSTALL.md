@@ -9,9 +9,21 @@ Dependencies
 * PAPI (> 4.0) : http://icl.cs.utk.edu/papi
 * Libmonitor   : http://libmonitor.googlecode.com
 
-Both these dependencies are included in the papiex git repository. 
-You can choose to build papiex against a pre-installed version of
+Both these dependencies are included in this papiex git repository. 
+You also have the option build papiex against a pre-installed version of
 PAPI or libmonitor.
+
+The only requirement is the availability of gcc and standard *nix utilities
+such as `make` and `autoconf`. Your system needs to support shared libraries.
+Papiex has been well tested on many versions of Linux/x86_64. 
+
+
+Getting the sources
+-------------------
+You can get papiex and it dependencies (PAPI and libmonitor) at:
+
+    $ git clone https://bitbucket.org/minimalmetrics/papiex-oss.git
+
 
 Build PapiEx
 ------------

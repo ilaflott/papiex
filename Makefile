@@ -3,8 +3,7 @@ CC := gcc
 OCC := $(CC)
 export CC OCC
 
-VERSION := 1.0.1
-PREFIX := $(PWD)/tools-oss-$(VERSION)
+PREFIX := $(PWD)/papiex-oss-install
 DESTPREF := $(PREFIX)
 
 LIBMONITOR := $(DESTPREF)/lib/libmonitor.so
@@ -74,20 +73,20 @@ distclean clobber: clean
 
 .PHONY: post-install
 post-install:
-	cp -a setup/tools-oss.sh.in $(DESTPREF)/tools-oss.sh
-	cp -a setup/tools-oss.csh.in $(DESTPREF)/tools-oss.csh
-	cp -a setup/tools-oss.module.in $(DESTPREF)/tools-oss
+	cp -a setup/papiex-oss.sh.in $(DESTPREF)/papiex-oss.sh
+	cp -a setup/papiex-oss.csh.in $(DESTPREF)/papiex-oss.csh
+	cp -a setup/papiex-oss.module.in $(DESTPREF)/papiex-oss
 	@echo =======================================================================
 	@echo "Tools are installed in:"
 	@echo $(DESTPREF)
 	@echo
 	@echo "To use the tools"
 	@echo "----------------"
-	@echo "module load $(DESTPREF)/tools-oss"
+	@echo "module load $(DESTPREF)/papiex-oss"
 	@echo "	   - or -"
-	@echo "source $(DESTPREF)/tools-oss.sh"
+	@echo "source $(DESTPREF)/papiex-oss.sh"
 	@echo "	   - or -"
-	@echo "source $(DESTPREF)/tools-oss.csh"
+	@echo "source $(DESTPREF)/papiex-oss.csh"
 	@echo
 	@echo "To test install:"
 	@echo "make test"
@@ -97,8 +96,8 @@ post-install:
 
 .PHONY: test
 test:
-	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/tools-oss.sh; cd papiex; make quicktest'
+	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
 
 .PHONY: fulltest
 fulltest:
-	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/tools-oss.sh; cd papiex; make test'
+	bash -c 'which papiex 2>/dev/null || source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'

@@ -1,4 +1,4 @@
-prefix=/home/tushar/oss/papiex.git/tools-oss-1.0.1
+prefix=/home/tushar/oss/papiex.git/papiex-oss-install
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
