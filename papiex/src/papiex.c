@@ -95,7 +95,7 @@ volatile __thread papiex_perthread_data_t *thread_data = NULL;
 #ifdef PROFILING_SUPPORT
   static int no_mpi_prof = 0; 
   static int no_io_prof = 0; 
-  static int no_threadsync_prof = 0; 
+  static int no_threadsync_prof = 1; 
 #else
   static int no_mpi_prof = 1; 
   static int no_io_prof = 1; 
@@ -2983,7 +2983,7 @@ void init_library_globals(void) {
 #ifdef PROFILING_SUPPORT
   no_mpi_prof = 0; 
   no_io_prof = 0; 
-  no_threadsync_prof = 0; 
+  no_threadsync_prof = 1; 
 #else
   no_mpi_prof = 1; 
   no_io_prof = 1; 

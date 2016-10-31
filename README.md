@@ -11,7 +11,7 @@ Table of Contents
   * [Getting Started](#getting-started)
   * [Preset and Native Events](#preset-and-native-events)
   * [Measurement Modes](#measurement-modes)
-  * [MPI, I/O and Threads](#mpi-io-and-thread-sync)
+  * [MPI and I/O Cycles](#mpi-and-io-cycles)
   * [Min, Max, Mean and Sum](#min-max-mean-and-sum)
   * [Task Memory and Resource Usage](#task-memory-and-resource-usage)
   * [Rank Mapping](#rank-mapping)
@@ -207,10 +207,9 @@ In the output report, scroll down to the section showing the raw event counts. Y
 
 See the high count for the `LSD` -- the loop stream detector -- yet a low count for arithmetic multiply instructions - `ARITH`. The time is spent in a floating-point loop(s) that contains 90% of the uOPS executed.
 
-## MPI, IO and Thread Sync
+## MPI and IO Cycles
 When PapiEx is built with `PROFILING_SUPPORT=1`, it automatically counts cycles 
-spent across MPI and I/O calls. It also intercepts pthread calls to figure out 
-time sent in synchronization regions.
+spent across MPI and I/O calls.
 
 To build papiex with profiling, edit the Makefile, and set `PROFILING_SUPPORT=1`
 on the `install-papiex` target. Then rebuild papiex, by typing `make`.
@@ -228,8 +227,6 @@ Now open the output report, and you will see a section:
 
     IO Cycles % ..................................  4.37839e+01
     MPI Cycles % .................................  4.97252e-01
-    MPI Sync Cycles % ............................  0.00000e+00
-    Thread Sync Cycles % .........................  3.66782e-02
 
 PapiEx intercepts a majority of the common MPI and I/O calls of interest.
 The manpage provides a list of calls intercepted while computing the above metrics.
