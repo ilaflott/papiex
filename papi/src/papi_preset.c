@@ -846,9 +846,10 @@ infix_to_postfix( char *infix ) {
             PAPIERROR("A infix string (probably in user-defined presets) is too big (max allowed %d): %s", PAPI_HUGE_STR_LEN, infix );
 
         // initialize stack
-	memset( &stack, 0, sizeof(stack));
+	memset(stack, 0, 2*PAPI_HUGE_STR_LEN);
 	stacktop = -1; 
-	push('#');
+	push('#'); 
+        stacktop = 0; // after initialization of stack to #
         /* initialize output string */
 	memset(postfix,0,2*PAPI_HUGE_STR_LEN);
         postfixlen = 0;
@@ -1181,7 +1182,7 @@ papi_load_derived_events (char *pmu_str, int pmu_type, int cidx, int preset_flag
 				// it also updates formulas for derived events so that they refer to the correct native event index
 				if (is_event(t, results[res_idx].derived_int, &results[res_idx], i) == 0) {
 					invalid_event = 1;
-					PAPIERROR("Error finding event %s, it is used in derived event %s", t, results[res_idx].symbol);
+					PAPIERROR("Missing event %s, used in derived event %s", t, results[res_idx].symbol);
 					break;
 				}
 

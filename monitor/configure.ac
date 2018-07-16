@@ -1,7 +1,7 @@
 dnl
 dnl  Libmonitor top-level configure.ac.
 dnl
-dnl  Copyright (c) 2007-2016, Rice University.
+dnl  Copyright (c) 2007-2018, Rice University.
 dnl  All rights reserved.
 dnl
 dnl  Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ dnl  $Id$
 dnl
 
 AC_INIT([libmonitor], [0.x], [hpctoolkit-forum@rice.edu])
-AC_COPYRIGHT([libmonitor is Copyright (c) 2007-2016, Rice University.
+AC_COPYRIGHT([libmonitor is Copyright (c) 2007-2018, Rice University.
 See the file LICENSE for details.])
 
 AC_CONFIG_AUX_DIR([config])
@@ -143,10 +143,13 @@ AC_MSG_RESULT([$wordsize bits])
 # CFLAGS and Fence Labels
 #------------------------------------------------------------
 
-# On ia64, gcc at -O2 or higher will duplicate code after a branch to
-# make long pipelines.  This breaks our fence labels because it
-# duplicates the symbol.  Here, we test for this and try lowering the
-# optimization level if needed.
+# Some compilers (icc -O2) and some platforms (gcc ia64) will
+# duplicate code to make longer pipelines.  This breaks our fence
+# labels because it duplicates the symbol.  Here, we test for this
+# and try lowering the optimization level if needed.
+#
+# To deal with automake issues, we replace CFLAGS with MONITOR_CFLAGS
+# for most files, and FENCE_CFLAGS for files with asm fence labels.
 
 orig_cflags="$CFLAGS"
 cflags_noopt=
@@ -184,22 +187,33 @@ do
 
     AC_COMPILE_IFELSE([
     AC_LANG_SOURCE([[
-extern void fence;
-int baz(void);
-int foo(int x)
+extern int fence1;
+extern int fence2;
+int baz1(int);
+int baz2(int);
+int baz3(int);
+int baz4(int);
+int baz5(int);
+int foo1(int x)
 {
-    int ret = 0;
-    if (x != 0) {
-        ret = baz();
+    asm (".globl fence1");
+    asm ("fence1:");
+    int ret = baz1(x);
+    if (x > 5) {
+        ret += baz2(x);
     }
-    asm (".globl fence");
-    asm ("fence:");
+    ret += baz3(x);
+    asm (".globl fence2");
+    asm ("fence2:");
     return ret;
 }
 int foo2(int y)
 {
-    y += 2;
-    return foo(y);
+    int ret = baz4(y);
+    if (y > 5) {
+        ret += baz2(y);
+    }
+    return foo1(ret);
 }
 ]])], [ans=yes], [ans=no])
 
@@ -209,9 +223,18 @@ int foo2(int y)
     fi
 done
 
+# Replace CFLAGS with MONITOR_CFLAGS and FENCE_CFLAGS.
+
+MONITOR_CFLAGS="$orig_cflags"
+FENCE_CFLAGS="$CFLAGS"
+CFLAGS="$orig_cflags"
+
 if test "$warn_cflags_opt" = yes ; then
     AC_MSG_WARN([modified CFLAGS to support asm fence labels])
 fi
+
+AC_SUBST([MONITOR_CFLAGS])
+AC_SUBST([FENCE_CFLAGS])
 
 #------------------------------------------------------------
 # GNU atomic ops
@@ -545,6 +568,39 @@ AC_DEFINE_UNQUOTED([MONITOR_CLIENT_SIGNALS_LIST],
     [List of signals kept open for the client.])
 
 #------------------------------------------------------------
+# Option: --enable-shootdown-signal=SIG
+#------------------------------------------------------------
+
+AC_ARG_ENABLE([shootdown-signal],
+    [AS_HELP_STRING([--enable-shootdown-signal=SIG],
+	[signal number for the fini-thread notify signal])],
+    [],
+    [enable_shootdown_signal=default ])
+
+AC_MSG_CHECKING([shootdown signal])
+
+config_shootdown_signal=0
+shootdown_mesg=default
+
+case "$enable_shootdown_signal" in
+    [[0-9]*] | SIG* )
+        config_shootdown_signal="$enable_shootdown_signal"
+	shootdown_mesg="$enable_shootdown_signal"
+	;;
+    yes | no | default )
+	;;
+    * )
+        AC_MSG_ERROR([invalid signal name: $enable_shootdown_signal])
+	;;
+esac
+
+AC_MSG_RESULT([$shootdown_mesg])
+
+AC_DEFINE_UNQUOTED([MONITOR_CONFIG_SHOOTDOWN_SIGNAL],
+    [$config_shootdown_signal],
+    [monitor shootdown signal from configure])
+
+#------------------------------------------------------------
 # Option: --enable-start-main=TYPE
 #------------------------------------------------------------
 
@@ -577,6 +633,9 @@ AC_MSG_RESULT([$enable_start_main])
 # Display a summary of the config options.
 #------------------------------------------------------------
 
+# We now split CFLAGS into MONITOR_CFLAGS and FENCE_CFLAGS.
+CFLAGS=
+
 AC_OUTPUT
 
 AC_MSG_NOTICE([-------------------])
@@ -590,7 +649,8 @@ AC_MSG_NOTICE([host:  $host])
 AC_MSG_NOTICE([C compiler: $CC_VERSION])
 AC_MSG_NOTICE([Path: $CC_PATH])
 AC_MSG_NOTICE([CC:   '$CC'])
-AC_MSG_NOTICE([CFLAGS: '$CFLAGS'])
+AC_MSG_NOTICE([CFLAGS: '$MONITOR_CFLAGS'])
+AC_MSG_NOTICE([Fence CFLAGS: '$FENCE_CFLAGS'])
 
 AC_MSG_NOTICE([wordsize: $wordsize bits])
 AC_MSG_NOTICE([gnu atomic ops: $use_gnu_atomic_ops])
@@ -603,6 +663,7 @@ AC_MSG_NOTICE([enable mpi: $enable_mpi])
 AC_MSG_NOTICE([enable pthreads: $enable_pthreads])
 AC_MSG_NOTICE([enable signals: $enable_signals])
 AC_MSG_NOTICE([client signals: $client_signals_mesg])
+AC_MSG_NOTICE([shootdown signal: $shootdown_mesg])
 AC_MSG_NOTICE([start main type: $enable_start_main])
 
 end_warning=no
@@ -618,8 +679,7 @@ fi
 
 if test "$warn_cflags_opt" = yes ; then
     AC_MSG_NOTICE([------------------------------------------------------------])
-    AC_MSG_WARN([Modified -O flags in CFLAGS to support asm fence labels.])
-    AC_MSG_WARN([Probably the compiler is duplicating code on ia64.])
+    AC_MSG_NOTICE([Note: Modified -O flags in CFLAGS to support asm fence labels.])
     end_warning=yes
 fi
 

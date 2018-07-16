@@ -1,7 +1,7 @@
 /*
  *  Libmonitor core functions: main and exit.
  *
- *  Copyright (c) 2007-2016, Rice University.
+ *  Copyright (c) 2007-2018, Rice University.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -145,13 +145,13 @@ static char **monitor_envp = NULL;
 volatile static char monitor_init_library_called = 0;
 volatile static char monitor_fini_library_called = 0;
 volatile static char monitor_fini_process_done = 0;
-volatile static char monitor_has_reached_main = 0;
+static char monitor_has_reached_main = 0;
 volatile static long monitor_end_process_cookie = 0;
 
-extern void monitor_main_fence1;
-extern void monitor_main_fence2;
-extern void monitor_main_fence3;
-extern void monitor_main_fence4;
+extern char monitor_main_fence1;
+extern char monitor_main_fence2;
+extern char monitor_main_fence3;
+extern char monitor_main_fence4;
 
 static struct monitor_thread_node monitor_main_tn;
 
@@ -248,9 +248,6 @@ monitor_end_library_fcn(void)
 void
 monitor_begin_process_fcn(void *user_data, int is_fork)
 {
-    MONITOR_DEBUG("calling monitor_normal_init() user_data = %p, is_fork = %d\n",
-		  user_data, is_fork);
-
     monitor_normal_init();
     if (is_fork) {
 	monitor_reset_thread_list(&monitor_main_tn);
@@ -260,23 +257,10 @@ monitor_begin_process_fcn(void *user_data, int is_fork)
     monitor_fini_process_done = 0;
 
     if (monitor_has_reached_main) {
-	if (monitor_debug) {
-	  MONITOR_DEBUG1("calling monitor_init_process() ...\n");
-	  if (monitor_argc > 0 && monitor_argv != NULL) {
-	    int i;
-	    for (i = 0; i < monitor_argc; i++) {
-	      MONITOR_DEBUG("argv[%d] = %s\n", i, monitor_argv[i]);
-	    }
-	  } else {
-	    MONITOR_DEBUG1("no argument list\n");
-	  }
-	}
-
+	MONITOR_DEBUG1("calling monitor_init_process() ...\n");
 	monitor_main_tn.tn_user_data =
-	  monitor_init_process(&monitor_argc, monitor_argv, user_data);
+	    monitor_init_process(&monitor_argc, monitor_argv, user_data);
 	monitor_thread_release();
-    } else {
-      MONITOR_DEBUG1("skipping monitor_init_process(), main not reached\n");
     }
 }
 
@@ -370,7 +354,8 @@ monitor_get_main_args(int *argc_ptr, char ***argv_ptr, char ***env_ptr)
 int
 monitor_unwind_process_bottom_frame(void *addr)
 {
-    return (&monitor_main_fence1 <= addr && addr <= &monitor_main_fence4);
+    return (&monitor_main_fence1 <= (char *) addr
+	    && (char *) addr <= &monitor_main_fence4);
 }
 
 /*
@@ -380,7 +365,8 @@ monitor_unwind_process_bottom_frame(void *addr)
 int
 monitor_in_main_start_func_wide(void *addr)
 {
-    return (&monitor_main_fence1 <= addr && addr <= &monitor_main_fence4);
+    return (&monitor_main_fence1 <= (char *) addr
+	    && (char *) addr <= &monitor_main_fence4);
 }
 
 /*
@@ -390,7 +376,8 @@ monitor_in_main_start_func_wide(void *addr)
 int
 monitor_in_main_start_func_narrow(void *addr)
 {
-    return (&monitor_main_fence2 <= addr && addr <= &monitor_main_fence3);
+    return (&monitor_main_fence2 <= (char *) addr
+	    && (char *) addr <= &monitor_main_fence3);
 }
 
 /*

@@ -1,7 +1,7 @@
 /*
  *  Internal shared declarations.
  *
- *  Copyright (c) 2007-2016, Rice University.
+ *  Copyright (c) 2007-2018, Rice University.
  *  All rights reserved.
  *  
  *  Redistribution and use in source and binary forms, with or without
@@ -100,6 +100,11 @@
 	    __VA_ARGS__ );					\
 } while (0)
 
+#define MONITOR_WARN_NO_TID_ARGS(fmt, ...)  do {		\
+    fprintf(stderr, "monitor warning [%d,--] %s: " fmt ,	\
+	    getpid(), __VA_ARGS__ );				\
+} while (0)
+
 #define MONITOR_ERROR_ARGS(fmt, ...)  do {			\
     fprintf(stderr, "monitor error [%d,%d] %s: " fmt ,		\
 	    getpid(), monitor_get_thread_num(),			\
@@ -112,6 +117,7 @@
 
 #define MONITOR_WARN1(fmt)      MONITOR_WARN_ARGS(fmt, __func__)
 #define MONITOR_WARN(fmt, ...)  MONITOR_WARN_ARGS(fmt, __func__, __VA_ARGS__)
+#define MONITOR_WARN_NO_TID(fmt, ...)  MONITOR_WARN_NO_TID_ARGS(fmt, __func__, __VA_ARGS__)
 
 #define MONITOR_ERROR1(fmt)      MONITOR_ERROR_ARGS(fmt, __func__)
 #define MONITOR_ERROR(fmt, ...)  MONITOR_ERROR_ARGS(fmt, __func__, __VA_ARGS__)
@@ -174,7 +180,7 @@ void monitor_thread_release(void);
 void monitor_thread_shootdown(void);
 int  monitor_shootdown_signal(void);
 int  monitor_sigwait_handler(int, siginfo_t *, void *);
-void monitor_remove_client_signals(sigset_t *);
+void monitor_remove_client_signals(sigset_t *, int);
 int  monitor_sigset_string(char *, int, const sigset_t *);
 int  monitor_signal_list_string(char *, int, int *);
 void monitor_get_main_args(int *, char ***, char ***);

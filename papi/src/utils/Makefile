@@ -1,63 +1,78 @@
 # File: utils/Makefile
-INCLUDE = -I../testlib -I. 
-PAPILIB = $(LIBRARY)
+include Makefile.target
+
+INCLUDE = -I../testlib -I.. -I.
 testlibdir=../testlib
-TESTLIB= $(testlibdir)/libtestlib.a
+CLOCKCORE= $(testlibdir)/clockcore.o
+DOLOOPS = $(testlibdir)/do_loops.o
 
 ALL = papi_avail papi_mem_info papi_cost papi_clockres papi_native_avail \
 	papi_command_line papi_event_chooser papi_decode papi_xml_event_info \
 	papi_version papi_multiplex_cost papi_component_avail papi_error_codes
 
-default all utils: $(UTIL_TARGETS)
+%.o:%.c
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(INCLUDE) -c $<
 
-papi_event_chooser: event_chooser.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) event_chooser.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_event_chooser -lm
+default all utils: $(ALL)
 
-papi_xml_event_info: event_info.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) event_info.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_xml_event_info -lm
+papi_avail: papi_avail.o $(PAPILIB) print_header.o
+	$(CC) $(LDFLAGS) -o papi_avail papi_avail.o print_header.o $(PAPILIB)
 
-papi_clockres: clockres.c $(PAPILIB) $(TESTLIB) 
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) clockres.c $(TESTLIB) \
-		$(PAPILIB) $(LDFLAGS) -o papi_clockres -lm
+papi_clockres: papi_clockres.o $(PAPILIB) $(CLOCKCORE)
+	$(CC) $(LDFLAGS) -o papi_clockres papi_clockres.o $(PAPILIB) $(CLOCKCORE) -lm
 
-papi_cost: cost.c $(TESTLIB) $(PAPILIB) cost_utils.o
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) cost.c $(TESTLIB) cost_utils.o $(PAPILIB) $(LDFLAGS) -o papi_cost -lm
+papi_command_line: papi_command_line.o $(PAPILIB) $(DOLOOPS)
+	$(CC) $(LDFLAGS) -o papi_command_line papi_command_line.o $(PAPILIB) $(DOLOOPS)
 
-papi_multiplex_cost: multiplex_cost.c $(TESTLIB) $(PAPILIB) cost_utils.o
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) multiplex_cost.c $(TESTLIB) cost_utils.o $(PAPILIB) $(LDFLAGS) -o papi_multiplex_cost -lm
+papi_component_avail: papi_component_avail.o $(PAPILIB) print_header.o
+	$(CC) $(LDFLAGS) -o papi_component_avail papi_component_avail.o $(PAPILIB) print_header.o
 
-papi_command_line: command_line.c $(TESTLIB) $(PAPILIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) command_line.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_command_line
+papi_cost: papi_cost.o $(PAPILIB) cost_utils.o
+	$(CC) $(LDFLAGS) -o papi_cost papi_cost.o cost_utils.o $(PAPILIB) -lm
 
-papi_mem_info: mem_info.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) mem_info.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_mem_info
+papi_decode: papi_decode.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_decode papi_decode.o $(PAPILIB)
 
-papi_version: version.c $(PAPILIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) version.c $(PAPILIB) $(LDFLAGS) -o papi_version
+papi_error_codes: papi_error_codes.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_error_codes papi_error_codes.o $(PAPILIB)
 
-papi_avail: avail.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) avail.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_avail
+papi_event_chooser: papi_event_chooser.o $(PAPILIB) print_header.o
+	$(CC) $(LDFLAGS) -o papi_event_chooser papi_event_chooser.o print_header.o $(PAPILIB)
 
-papi_decode: decode.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) decode.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_decode
+papi_hybrid_native_avail: papi_hybrid_native_avail.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_hybrid_native_avail papi_hybrid_native_avail.o $(PAPILIB)
 
-papi_native_avail: native_avail.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) native_avail.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_native_avail
+papi_mem_info: papi_mem_info.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_mem_info papi_mem_info.o $(PAPILIB)
 
-papi_component_avail: component.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) component.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_component_avail
+papi_multiplex_cost: papi_multiplex_cost.o $(PAPILIB) cost_utils.o
+	$(CC) $(LDFLAGS) -o papi_multiplex_cost papi_multiplex_cost.o cost_utils.o $(PAPILIB) -lm
 
-papi_error_codes: error_codes.c $(PAPILIB) $(TESTLIB)
-	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) error_codes.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o papi_error_codes
+papi_native_avail: papi_native_avail.o $(PAPILIB) print_header.o
+	$(CC) $(LDFLAGS) -o papi_native_avail papi_native_avail.o $(PAPILIB) print_header.o
+
+papi_version: papi_version.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_version papi_version.o $(PAPILIB)
+
+papi_xml_event_info: papi_xml_event_info.o $(PAPILIB)
+	$(CC) $(LDFLAGS) -o papi_xml_event_info papi_xml_event_info.o $(PAPILIB)
+
+
 
 cost_utils.o: ../testlib/papi_test.h cost_utils.c
 	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) -c cost_utils.c
 
+print_header.o: print_header.h print_header.c
+	$(CC) $(INCLUDE) $(CFLAGS) $(OPTFLAGS) -c print_header.c
+
 clean:
 	rm -f *.o *.stderr *.stdout core *~ $(ALL)
 
+distclean clobber: clean
+	  rm -f Makefile.target
+
 install: $(UTIL_TARGETS)
-	@echo "Utilities (BINDIR) being installed in: \"$(BINDIR)\""; 
+	@echo "Utilities (BINDIR) being installed in: \"$(BINDIR)\"";
 	-mkdir -p $(BINDIR)
 	-chmod go+rx $(BINDIR)
 	-find . -perm -100 -type f -exec cp {} $(BINDIR) \;

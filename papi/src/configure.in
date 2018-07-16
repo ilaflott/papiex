@@ -6,7 +6,7 @@
 # cross compiling should work differently...
 
 AC_PREREQ(2.59)
-AC_INIT(PAPI, 5.5.1.0, ptools-perfapi@eecs.utk.edu)
+AC_INIT(PAPI, 5.6.1.0, ptools-perfapi@icl.utk.edu)
 AC_CONFIG_SRCDIR([papi.c])
 AC_CONFIG_HEADER([config.h])
 
@@ -118,7 +118,7 @@ fi
 # remark #869: parameter was never referenced 
 # remark #271: trailing comma is nonstandard
 if test "$CC_COMMON_NAME" = "icc"; then
-  CC="$CC -diag-disable 188,869,271"
+  CFLAGS="$CFLAGS -diag-disable 188,869,271"
   if test "$MIC" = "yes"; then
      CC="$CC -mmic -fPIC"
   fi
@@ -400,6 +400,9 @@ AC_ARG_WITH(pthread-mutexes,
 		       fi
                didcheck=1
                AC_CHECK_FUNC(ffsll,[ffsll=yes],[ffsll=no]) ])
+               if test "$ffsll" = "yes" ; then
+                 AC_DEFINE(HAVE_FFSLL, 1, This platform has the ffsll() function)
+               fi
 if test "$didcheck" != "1"; then
   AC_MSG_CHECKING(for ffsll)
   if test "$ffsll" = "yes" ; then
@@ -1010,6 +1013,23 @@ AC_ARG_WITH(perf_events,
               [force_perf_events=yes
 	       user_specified_interface=pe])
 
+# RDPMC support
+
+AC_ARG_ENABLE(perfevent_rdpmc,
+AS_HELP_STRING([--enable-perfevent-rdpmc],
+		[Enable userspace rdpmc instruction on perf_event, default: yes]),
+[case "${enableval}" in
+             yes) enable_perfevent_rdpmc=true ;;
+             no)  enable_perfevent_rpdmc=false ;;
+             *)   AC_MSG_ERROR([bad value ${enableval} for --enable-perfevent-rdpmc]) ;;
+esac],
+[enable_perfevent_rdpmc=true])
+
+if test "$enable_perfevent_rdpmc" = "true"; then
+	PECFLAGS="$PECFLAGS -DUSE_PERFEVENT_RDPMC=1"
+fi
+
+# Uncore support
 AC_ARG_WITH(pe_incdir,
 	      [  --with-pe-incdir=<path>		Specify path to the correct perf header file],
               [pe_incdir=$withval 
@@ -1033,7 +1053,7 @@ AS_IF([test "x$enable_perf_event_uncore" != "xno"],[
 	AC_CHECK_FILE($pe_incdir/perf_event.h,perf_events="yes")])
   fi
   if test "$perf_events" = "yes"; then
-      PECFLAGS="-DPEINCLUDE=\\\"$pe_incdir/perf_event.h\\\""
+      PECFLAGS="$PECFLAGS -DPEINCLUDE=\\\"$pe_incdir/perf_event.h\\\""
   fi
 
 #
@@ -1240,7 +1260,6 @@ FILENAME=Makefile.inc
 SHOW_CONF=showconf
 CTEST_TARGETS="all"
 FTEST_TARGETS="all"
-UTIL_TARGETS="papi_avail papi_mem_info papi_cost papi_clockres papi_native_avail papi_command_line papi_event_chooser papi_decode papi_xml_event_info papi_version papi_multiplex_cost papi_component_avail papi_error_codes"
 LIBRARY=libpapi.a
 SHLIB='libpapi.so.AC_PACKAGE_VERSION'
 VLIB='libpapi.so.$(PAPIVER)'
@@ -1590,7 +1609,7 @@ elif test "$F77" != "xlf"; then
 fi
 
 if test "$CC_COMMON_NAME" = "icc"; then
-    OMPCFLGS=-openmp
+    OMPCFLGS=-qopenmp
 fi
 
 AC_MSG_CHECKING(for components to build)
@@ -1789,7 +1808,6 @@ AC_SUBST(BITFLAGS)
 AC_SUBST(COMPONENT_RULES)
 AC_SUBST(COMPONENTS)
 AC_SUBST(FTEST_TARGETS)
-AC_SUBST(UTIL_TARGETS)
 AC_SUBST(HAVE_NO_OVERRIDE_INIT)
 AC_SUBST(BGPM_INSTALL_DIR)
 AC_SUBST(CC_COMMON_NAME)
@@ -1811,5 +1829,5 @@ AC_MSG_NOTICE(Generating f90papi.h)
 
 AC_MSG_NOTICE($FILENAME will be included in the generated Makefile)
 AC_CONFIG_FILES([Makefile papi.pc])
-AC_CONFIG_FILES([components/Makefile_comp_tests.target testlib/Makefile.target ctests/Makefile.target ftests/Makefile.target])
+AC_CONFIG_FILES([components/Makefile_comp_tests.target testlib/Makefile.target utils/Makefile.target ctests/Makefile.target ftests/Makefile.target validation_tests/Makefile.target])
 AC_OUTPUT

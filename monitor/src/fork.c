@@ -1,7 +1,7 @@
 /*
  *  Libmonitor fork and exec functions.
  *
- *  Copyright (c) 2007-2016, Rice University.
+ *  Copyright (c) 2007-2018, Rice University.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -512,7 +512,7 @@ MONITOR_WRAP_NAME(execve)(const char *path, char *const argv[],
 static int
 monitor_system(const char *command, int callback)
 {
-     struct sigaction ign_act, dfl_act, old_int, old_quit, old_chld;
+    struct sigaction ign_act, old_int, old_quit;
     sigset_t sigchld_set, old_set;
     void *user_data = NULL;
     char *arglist[4];
@@ -537,9 +537,6 @@ monitor_system(const char *command, int callback)
      */
     memset(&ign_act, 0, sizeof(struct sigaction));
     ign_act.sa_handler = SIG_IGN;
-    memset(&dfl_act, 0, sizeof(struct sigaction));
-    dfl_act.sa_handler = SIG_DFL;
-    
     sigemptyset(&sigchld_set);
     sigaddset(&sigchld_set, SIGCHLD);
 
@@ -549,8 +546,7 @@ monitor_system(const char *command, int callback)
     }
     (*real_sigaction)(SIGINT, &ign_act, &old_int);
     (*real_sigaction)(SIGQUIT, &ign_act, &old_quit);
-    (*real_sigaction)(SIGCHLD, &dfl_act, &old_chld);
-    //    (*real_sigprocmask)(SIG_BLOCK, &sigchld_set, &old_set);
+    (*real_sigprocmask)(SIG_BLOCK, &sigchld_set, &old_set);
 
     pid = (*real_fork)();
     if (pid < 0) {
@@ -560,39 +556,31 @@ monitor_system(const char *command, int callback)
     }
     else if (pid == 0) {
 	/* Child process. */
+	MONITOR_DEBUG("(%s) child process about to exec, parent = %d\n",
+		      who, getppid());
 	(*real_sigaction)(SIGINT, &old_int, NULL);
 	(*real_sigaction)(SIGQUIT, &old_quit, NULL);
-	(*real_sigaction)(SIGCHLD, &old_chld, NULL);
-	//	(*real_sigprocmask)(SIG_SETMASK, &old_set, NULL);
+	(*real_sigprocmask)(SIG_SETMASK, &old_set, NULL);
 	arglist[0] = SHELL;
 	arglist[1] = "-c";
 	arglist[2] = (char *)command;
 	arglist[3] = NULL;
-	MONITOR_DEBUG("(%s) child to execve %s %s %s, parent %d pid %d\n",
-		      who, arglist[0],arglist[1],arglist[2],getppid(),getpid());
 	(*real_execve)(SHELL, arglist,
 		       callback ? environ : monitor_copy_environ(environ));
-	MONITOR_ERROR("(%s), child unexpected execve %s %s %s failure parent %d pid %d errno %d\n",who, arglist[0],arglist[1],arglist[2],(int)getppid(),(int)getpid(),errno);
 	monitor_real_exit(127);
     }
     else {
-      /* Parent process. */
-      while (waitpid(pid, &status, 0) < 0) {
-	if (errno == EINTR) 
-	  continue;
-	else if (errno == ECHILD) {
-	  status = 0;
-	  break;
-	} else {
-	  status = -1;
-	  break;
+	/* Parent process. */
+	while (waitpid(pid, &status, 0) < 0) {
+	    if (errno != EINTR) {
+		status = -1;
+		break;
+	    }
 	}
-      }
     }
     (*real_sigaction)(SIGINT, &old_int, NULL);
     (*real_sigaction)(SIGQUIT, &old_quit, NULL);
-    (*real_sigaction)(SIGCHLD, &old_chld, NULL);
-    //    (*real_sigprocmask)(SIG_SETMASK, &old_set, NULL);
+    (*real_sigprocmask)(SIG_SETMASK, &old_set, NULL);
 
     if (callback) {
 	MONITOR_DEBUG("(%s) calling monitor_post_fork() ...\n", who);

@@ -1,7 +1,7 @@
 /*
  *  Include file for libmonitor clients.
  *
- *  Copyright (c) 2007-2016, Rice University.
+ *  Copyright (c) 2007-2018, Rice University.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,11 @@ enum { MONITOR_EXIT_NORMAL = 1, MONITOR_EXIT_SIGNAL, MONITOR_EXIT_EXEC };
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct monitor_thread_info {
+    void * mti_create_return_addr;
+    void * mti_start_routine;
+};
 
 /*
  *  Callback functions for the client to override.
@@ -108,6 +113,7 @@ extern int monitor_block_shootdown(void);
 extern void monitor_unblock_shootdown(void);
 extern void monitor_disable_new_threads(void);
 extern void monitor_enable_new_threads(void);
+extern int monitor_get_new_thread_info(struct monitor_thread_info *);
 
 /*
  *  Special access to wrapped functions for the application.

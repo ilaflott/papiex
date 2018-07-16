@@ -11,7 +11,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# libmonitor is Copyright (c) 2007-2016, Rice University.
+# libmonitor is Copyright (c) 2007-2018, Rice University.
 # See the file LICENSE for details.
 ## -------------------- ##
 ## M4sh Initialization. ##
@@ -654,6 +654,8 @@ MONITOR_TEST_LINK_PRELOAD_FALSE
 MONITOR_TEST_LINK_PRELOAD_TRUE
 MONITOR_TEST_USE_GNU_ATOMIC_OPS_FALSE
 MONITOR_TEST_USE_GNU_ATOMIC_OPS_TRUE
+FENCE_CFLAGS
+MONITOR_CFLAGS
 CC_PATH
 svn_revision
 wrap_list
@@ -798,6 +800,7 @@ enable_mpi
 enable_pthreads
 enable_signals
 enable_client_signals
+enable_shootdown_signal
 enable_start_main
 '
       ac_precious_vars='build_alias
@@ -1460,6 +1463,8 @@ Optional Features:
                           comma-separated list of signal names (SIGPROF) or
                           numbers (27) that are kept open for the client, but
                           do not use SIGRTMIN names (default empty)
+  --enable-shootdown-signal=SIG
+                          signal number for the fini-thread notify signal
   --enable-start-main=TYPE
                           type of __libc_start_main() function (x86, ppc)
 
@@ -1560,7 +1565,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-libmonitor is Copyright (c) 2007-2016, Rice University.
+libmonitor is Copyright (c) 2007-2018, Rice University.
 See the file LICENSE for details.
 _ACEOF
   exit
@@ -13357,10 +13362,13 @@ $as_echo "$wordsize bits" >&6; }
 # CFLAGS and Fence Labels
 #------------------------------------------------------------
 
-# On ia64, gcc at -O2 or higher will duplicate code after a branch to
-# make long pipelines.  This breaks our fence labels because it
-# duplicates the symbol.  Here, we test for this and try lowering the
-# optimization level if needed.
+# Some compilers (icc -O2) and some platforms (gcc ia64) will
+# duplicate code to make longer pipelines.  This breaks our fence
+# labels because it duplicates the symbol.  Here, we test for this
+# and try lowering the optimization level if needed.
+#
+# To deal with automake issues, we replace CFLAGS with MONITOR_CFLAGS
+# for most files, and FENCE_CFLAGS for files with asm fence labels.
 
 orig_cflags="$CFLAGS"
 cflags_noopt=
@@ -13401,22 +13409,33 @@ $as_echo_n "checking if asm fence labels work with CFLAGS='$CFLAGS'... " >&6; }
 /* end confdefs.h.  */
 
 
-extern void fence;
-int baz(void);
-int foo(int x)
+extern int fence1;
+extern int fence2;
+int baz1(int);
+int baz2(int);
+int baz3(int);
+int baz4(int);
+int baz5(int);
+int foo1(int x)
 {
-    int ret = 0;
-    if (x != 0) {
-        ret = baz();
+    asm (".globl fence1");
+    asm ("fence1:");
+    int ret = baz1(x);
+    if (x > 5) {
+        ret += baz2(x);
     }
-    asm (".globl fence");
-    asm ("fence:");
+    ret += baz3(x);
+    asm (".globl fence2");
+    asm ("fence2:");
     return ret;
 }
 int foo2(int y)
 {
-    y += 2;
-    return foo(y);
+    int ret = baz4(y);
+    if (y > 5) {
+        ret += baz2(y);
+    }
+    return foo1(ret);
 }
 
 _ACEOF
@@ -13434,10 +13453,19 @@ $as_echo "$ans" >&6; }
     fi
 done
 
+# Replace CFLAGS with MONITOR_CFLAGS and FENCE_CFLAGS.
+
+MONITOR_CFLAGS="$orig_cflags"
+FENCE_CFLAGS="$CFLAGS"
+CFLAGS="$orig_cflags"
+
 if test "$warn_cflags_opt" = yes ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: modified CFLAGS to support asm fence labels" >&5
 $as_echo "$as_me: WARNING: modified CFLAGS to support asm fence labels" >&2;}
 fi
+
+
+
 
 #------------------------------------------------------------
 # GNU atomic ops
@@ -14350,6 +14378,45 @@ _ACEOF
 
 
 #------------------------------------------------------------
+# Option: --enable-shootdown-signal=SIG
+#------------------------------------------------------------
+
+# Check whether --enable-shootdown-signal was given.
+if test "${enable_shootdown_signal+set}" = set; then :
+  enableval=$enable_shootdown_signal;
+else
+  enable_shootdown_signal=default
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking shootdown signal" >&5
+$as_echo_n "checking shootdown signal... " >&6; }
+
+config_shootdown_signal=0
+shootdown_mesg=default
+
+case "$enable_shootdown_signal" in
+    [0-9]* | SIG* )
+        config_shootdown_signal="$enable_shootdown_signal"
+	shootdown_mesg="$enable_shootdown_signal"
+	;;
+    yes | no | default )
+	;;
+    * )
+        as_fn_error $? "invalid signal name: $enable_shootdown_signal" "$LINENO" 5
+	;;
+esac
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $shootdown_mesg" >&5
+$as_echo "$shootdown_mesg" >&6; }
+
+
+cat >>confdefs.h <<_ACEOF
+#define MONITOR_CONFIG_SHOOTDOWN_SIGNAL $config_shootdown_signal
+_ACEOF
+
+
+#------------------------------------------------------------
 # Option: --enable-start-main=TYPE
 #------------------------------------------------------------
 
@@ -14386,6 +14453,9 @@ $as_echo "$enable_start_main" >&6; }
 #------------------------------------------------------------
 # Display a summary of the config options.
 #------------------------------------------------------------
+
+# We now split CFLAGS into MONITOR_CFLAGS and FENCE_CFLAGS.
+CFLAGS=
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16734,8 +16804,10 @@ $as_echo "$as_me: C compiler: $CC_VERSION" >&6;}
 $as_echo "$as_me: Path: $CC_PATH" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: CC:   '$CC'" >&5
 $as_echo "$as_me: CC:   '$CC'" >&6;}
-{ $as_echo "$as_me:${as_lineno-$LINENO}: CFLAGS: '$CFLAGS'" >&5
-$as_echo "$as_me: CFLAGS: '$CFLAGS'" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: CFLAGS: '$MONITOR_CFLAGS'" >&5
+$as_echo "$as_me: CFLAGS: '$MONITOR_CFLAGS'" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Fence CFLAGS: '$FENCE_CFLAGS'" >&5
+$as_echo "$as_me: Fence CFLAGS: '$FENCE_CFLAGS'" >&6;}
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: wordsize: $wordsize bits" >&5
 $as_echo "$as_me: wordsize: $wordsize bits" >&6;}
@@ -16759,6 +16831,8 @@ $as_echo "$as_me: enable pthreads: $enable_pthreads" >&6;}
 $as_echo "$as_me: enable signals: $enable_signals" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: client signals: $client_signals_mesg" >&5
 $as_echo "$as_me: client signals: $client_signals_mesg" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: shootdown signal: $shootdown_mesg" >&5
+$as_echo "$as_me: shootdown signal: $shootdown_mesg" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: start main type: $enable_start_main" >&5
 $as_echo "$as_me: start main type: $enable_start_main" >&6;}
 
@@ -16781,10 +16855,8 @@ fi
 if test "$warn_cflags_opt" = yes ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: ------------------------------------------------------------" >&5
 $as_echo "$as_me: ------------------------------------------------------------" >&6;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Modified -O flags in CFLAGS to support asm fence labels." >&5
-$as_echo "$as_me: WARNING: Modified -O flags in CFLAGS to support asm fence labels." >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Probably the compiler is duplicating code on ia64." >&5
-$as_echo "$as_me: WARNING: Probably the compiler is duplicating code on ia64." >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Note: Modified -O flags in CFLAGS to support asm fence labels." >&5
+$as_echo "$as_me: Note: Modified -O flags in CFLAGS to support asm fence labels." >&6;}
     end_warning=yes
 fi
 

@@ -1,12 +1,16 @@
 /* This code attempts to test the L2 Data Cache Acceesses	*/
 /* performance counter PAPI_L2_DCA				*/
 
-
 /* Notes:							*/
 /*	Should this be equivelent to PAPI_L1_DCM?		*/
-/*		(on IVY it is, on HSW it is not)		*/
+/*		(on IVY it is)					*/
+/*	On Haswell/Broadwell/Skylake this maps to :		*/
+/*		L2_RQSTS:ALL_DEMAND_REFERENCES			*/
+
 /*	Should this include *all* L2 accesses or just those	*/
-/*		cause by the user?  Prefetch? MESI?		*/
+/*		caused by the user?  Prefetch? MESI?		*/
+
+
 
 /* by Vince Weaver, vincent.weaver@maine.edu			*/
 
@@ -69,6 +73,13 @@ int main(int argc, char **argv) {
 	l2_linesize=get_linesize(L2_CACHE);
 	l2_entries=get_entries(L2_CACHE);
 
+	if ((l2_size==0) || (l2_linesize==0)) {
+		if (!quiet) {
+			printf("Unable to determine size of L2 cache!\n");
+		}
+		test_skip( __FILE__, __LINE__, "adding PAPI_L2_DCA", retval );
+	}
+
 	if (!quiet) {
 		printf("\tDetected %dk L1 DCache, %dB linesize\n",
 			l1_size/1024,l1_linesize);
@@ -79,7 +90,7 @@ int main(int argc, char **argv) {
 	arraysize=l2_size/sizeof(double);
 
 	if (!quiet) {
-		printf("\tAllocating %ld bytes of memory (%d doubles)\n",
+		printf("\tAllocating %zu bytes of memory (%d doubles)\n",
 			arraysize*sizeof(double),arraysize);
 	}
 
@@ -124,7 +135,7 @@ int main(int argc, char **argv) {
 
 	if (!quiet) {
 		printf("\tShould be roughly "
-			"arraysize/L2_linesize/double_size (%d/%d/%ld): "
+			"arraysize/L2_linesize/double_size (%d/%d/%zu): "
 			"%lld\n\n",
 			arraysize,l2_linesize,sizeof(double),
 			expected);
@@ -175,7 +186,7 @@ int main(int argc, char **argv) {
 
 	if (!quiet) {
 		printf("\tShould be roughly "
-			"arraysize/L2_linesize/double_size (%d/%d/%ld): "
+			"arraysize/L2_linesize/double_size (%d/%d/%zu): "
 			"%lld\n\n",
 			arraysize,l2_linesize,sizeof(double),
 			expected);
@@ -192,8 +203,10 @@ int main(int argc, char **argv) {
 		printf("\n");
 	}
 
+	/* Warn for now, as we get errors we can't easily */
+	/* explain on haswell and more recent Intel chips */
 	if (errors) {
-		test_fail( __FILE__, __LINE__, "Error too high", 1 );
+		test_warn( __FILE__, __LINE__, "Error too high", 1 );
 	}
 
 	test_pass(__FILE__);

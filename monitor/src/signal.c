@@ -1,7 +1,7 @@
 /*
  *  Libmonitor signal functions.
  *
- *  Copyright (c) 2007-2016, Rice University.
+ *  Copyright (c) 2007-2018, Rice University.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@
 #include "common.h"
 #include "monitor.h"
 #include "spinlock.h"
+
+#define MONITOR_CHOOSE_SHOOTDOWN_EARLY  1
 
 /*
  *----------------------------------------------------------------------
@@ -148,6 +150,9 @@ static spinlock_t monitor_signal_lock = SPINLOCK_UNLOCKED;
 
 static int last_resort_signal = SIGWINCH;
 static int shootdown_signal = -1;
+
+static void monitor_choose_shootdown_early(void);
+static inline int monitor_adjust_samask(sigset_t *);
 
 /*
  *----------------------------------------------------------------------
@@ -279,10 +284,9 @@ monitor_signal_init(void)
 {
     struct monitor_signal_entry *mse;
     struct sigaction *sa;
-    char *shootdown_str;
     char buf[MONITOR_SIG_BUF_SIZE];
     int num_avoid, num_valid, num_invalid;
-    int i, k, sig, ret;
+    int i, sig, ret;
 
     MONITOR_RUN_ONCE(signal_init);
     MONITOR_GET_REAL_NAME_WRAP(real_sigaction, sigaction);
@@ -308,6 +312,9 @@ monitor_signal_init(void)
 	}
     }
 
+    monitor_choose_shootdown_early();
+    monitor_signal_array[shootdown_signal].mse_keep_open = 1;
+
     /*
      * Install our signal handler for all signals.
      */
@@ -322,6 +329,7 @@ monitor_signal_init(void)
 	    sa = &mse->mse_kern_act;
 	    sa->sa_sigaction = &monitor_signal_handler;
 	    sigemptyset(&sa->sa_mask);
+	    monitor_adjust_samask(&sa->sa_mask);
 	    sa->sa_flags = SAFLAGS_REQUIRED;
 	    ret = (*real_sigaction)(sig, sa, &mse->mse_appl_act);
 	    if (ret == 0) {
@@ -333,6 +341,111 @@ monitor_signal_init(void)
 	}
     }
 
+    if (monitor_debug) {
+	MONITOR_DEBUG("valid: %d, invalid: %d, avoid: %d, max signum: %d\n",
+		      num_valid, num_invalid, num_avoid, MONITOR_NSIG - 1);
+
+        monitor_signal_list_string(buf, MONITOR_SIG_BUF_SIZE,
+				   monitor_signal_open_list);
+	MONITOR_DEBUG("client list:%s\n", buf);
+
+        monitor_signal_list_string(buf, MONITOR_SIG_BUF_SIZE,
+				   monitor_shootdown_list);
+	MONITOR_DEBUG("shootdown list:%s\n", buf);
+	MONITOR_DEBUG("shootdown signal: %d\n", shootdown_signal);
+    }
+}
+
+/*
+ *----------------------------------------------------------------------
+ *  SHOOTDOWN SIGNAL and helper functions
+ *----------------------------------------------------------------------
+ */
+
+/*
+ *  Adjust the signal set so the application can't change the mask for
+ *  any signal in the keep open list.
+ */
+void
+monitor_remove_client_signals(sigset_t *set, int how)
+{
+    struct monitor_signal_entry *mse;
+    char buf[MONITOR_SIG_BUF_SIZE];
+    char *type = "";
+    int sig;
+
+    if (set == NULL) {
+	return;
+    }
+
+    if (monitor_debug) {
+	if (how == SIG_BLOCK) { type = "block"; }
+	else if (how == SIG_UNBLOCK) { type = "unblock"; }
+	else { type = "setmask"; }
+
+	monitor_sigset_string(buf, MONITOR_SIG_BUF_SIZE, set);
+	MONITOR_DEBUG("(%s) request:%s\n", type, buf);
+    }
+
+    if (how == SIG_BLOCK || how == SIG_UNBLOCK) {
+	/*
+	 * For BLOCK and UNBLOCK, remove from 'set' any signals in the
+	 * keep open list.
+	 */
+	for (sig = 1; sig < MONITOR_NSIG; sig++) {
+	    mse = &monitor_signal_array[sig];
+	    if (!mse->mse_avoid && !mse->mse_invalid && mse->mse_keep_open) {
+		sigdelset(set, sig);
+	    }
+	}
+    }
+    else {
+	/*
+	 * For SETMASK, get the current mask and require that 'set'
+	 * has the same value for all signals in the keep open list.
+	 */
+	sigset_t cur_set;
+	(*real_sigprocmask)(0, NULL, &cur_set);
+
+	if (monitor_debug) {
+	    monitor_sigset_string(buf, MONITOR_SIG_BUF_SIZE, &cur_set);
+	    MONITOR_DEBUG("(%s) current:%s\n", type, buf);
+	}
+
+	for (sig = 1; sig < MONITOR_NSIG; sig++) {
+	    mse = &monitor_signal_array[sig];
+	    if (!mse->mse_avoid && !mse->mse_invalid && mse->mse_keep_open) {
+		if (sigismember(&cur_set, sig)) {
+		    sigaddset(set, sig);
+		} else {
+		    sigdelset(set, sig);
+		}
+	    }
+	}
+    }
+
+    if (monitor_debug) {
+	monitor_sigset_string(buf, MONITOR_SIG_BUF_SIZE, set);
+	MONITOR_DEBUG("(%s) actual: %s\n", type, buf);
+    }
+}
+
+/*
+ *  Choose the shootdown signal and add it to the open list.  In the
+ *  early case, pick something on the shootdown list that's not held
+ *  open for the client.
+ */
+static void
+monitor_choose_shootdown_early(void)
+{
+    struct monitor_signal_entry *mse;
+    char *shootdown_str;
+    int i, k, sig;
+
+    if (shootdown_signal > 0) {
+	return;
+    }
+
     /*
      * Build the shootdown avail list: the real-time signals first
      * followed by the extra list.  SIGRTMIN expands to a syscall, so
@@ -340,8 +453,7 @@ monitor_signal_init(void)
      */
     k = 0;
 #ifdef SIGRTMIN
-    for (i = 6; i < 14; i++) {
-	sig = SIGRTMIN + i;
+    for (sig = SIGRTMIN + 8; sig <= SIGRTMAX - 8; sig++) {
 	mse = &monitor_signal_array[sig];
 	if (sig < MONITOR_NSIG
 	    && !mse->mse_avoid && !mse->mse_invalid
@@ -367,10 +479,10 @@ monitor_signal_init(void)
 
     /*
      * Allow MONITOR_SHOOTDOWN_SIGNAL to set the shootdown signal.
+     * If set, this always has first priority.
      */
     shootdown_str = getenv("MONITOR_SHOOTDOWN_SIGNAL");
     if (shootdown_str != NULL) {
-	shootdown_signal = -1;
 	if (sscanf(shootdown_str, "%d", &sig) == 1
 	    && sig > 0 && sig < MONITOR_NSIG
 	    && !monitor_signal_array[sig].mse_avoid
@@ -378,24 +490,63 @@ monitor_signal_init(void)
 	    && !monitor_signal_array[sig].mse_stop)
 	{
 	    shootdown_signal = sig;
-	    monitor_signal_array[sig].mse_keep_open = 1;
+	    MONITOR_DEBUG("shootdown signal (environ) = %d\n", shootdown_signal);
+	    return;
 	}
-	MONITOR_DEBUG("MONITOR_SHOOTDOWN_SIGNAL = %d\n", shootdown_signal);
     }
 
-    if (monitor_debug) {
-	MONITOR_DEBUG("valid: %d, invalid: %d, avoid: %d, max signum: %d\n",
-		      num_valid, num_invalid, num_avoid, MONITOR_NSIG - 1);
-
-        monitor_signal_list_string(buf, MONITOR_SIG_BUF_SIZE,
-				   monitor_signal_open_list);
-	MONITOR_DEBUG("client list:%s\n", buf);
-
-        monitor_signal_list_string(buf, MONITOR_SIG_BUF_SIZE,
-				   monitor_shootdown_list);
-	MONITOR_DEBUG("shootdown list:%s\n", buf);
+    /*
+     * See if this was set in configure.
+     */
+    sig = MONITOR_CONFIG_SHOOTDOWN_SIGNAL;
+    if (sig > 0 && sig < MONITOR_NSIG
+	&& !monitor_signal_array[sig].mse_avoid
+	&& !monitor_signal_array[sig].mse_invalid
+	&& !monitor_signal_array[sig].mse_stop)
+    {
+	shootdown_signal = sig;
+	MONITOR_DEBUG("shootdown signal (config) = %d\n", shootdown_signal);
+	return;
     }
+
+    /*
+     * Choose something from the shootdown list.
+     */
+    for (i = 0; monitor_shootdown_list[i] > 0; i++) {
+	sig = monitor_shootdown_list[i];
+
+	if (! monitor_signal_array[sig].mse_keep_open) {
+	    shootdown_signal = sig;
+	    MONITOR_DEBUG("shootdown signal (list) = %d\n", shootdown_signal);
+	    return;
+	}
+    }
+
+    shootdown_signal = last_resort_signal;
+    MONITOR_DEBUG("shootdown signal (last resort) = %d\n", shootdown_signal);
 }
+
+/*
+ *  Return a signal unused by the client or application, if possible.
+ */
+int
+monitor_shootdown_signal(void)
+{
+    if (shootdown_signal > 0) {
+	return shootdown_signal;
+    }
+
+    monitor_signal_init();
+    monitor_choose_shootdown_early();
+    return shootdown_signal;
+}
+
+#if 0
+/*
+ *  Old, delayed way of choosing the shootdown signal and keeping the
+ *  client signals open.  The libunwind use case makes this approach
+ *  of delaying the shootdown choice near impossible.
+ */
 
 /*
  *  Delete from "set" any signals on the keep open list.  Always leave
@@ -410,6 +561,24 @@ monitor_remove_client_signals(sigset_t *set)
     if (set == NULL) {
 	return;
     }
+
+#if MONITOR_CHOOSE_SHOOTDOWN_EARLY
+
+    for (sig = 1; sig < MONITOR_NSIG; sig++) {
+	mse = &monitor_signal_array[sig];
+	if (!mse->mse_avoid && !mse->mse_invalid && mse->mse_keep_open) {
+	    sigdelset(set, sig);
+	}
+    }
+    return;
+
+#else
+    /*
+     * The old, delayed way of choosing the shootdown signal is broken
+     * when using interrupts (deadlocks with sigprocmask).  This could
+     * be fixed with a non-blocking data structure, but the libunwind
+     * use case makes that pointless.
+     */
     MONITOR_SIGNAL_LOCK;
 
     if (shootdown_signal < 0) {
@@ -459,15 +628,8 @@ monitor_remove_client_signals(sigset_t *set)
 	}
     }
     MONITOR_SIGNAL_UNLOCK;
-}
 
-/*
- *  Adjust sa_flags according to the required and forbidden sets.
- */
-static inline int
-monitor_adjust_saflags(int flags)
-{
-    return (flags | SAFLAGS_REQUIRED) & ~(SAFLAGS_FORBIDDEN);
+#endif
 }
 
 /*
@@ -476,12 +638,21 @@ monitor_adjust_saflags(int flags)
 int
 monitor_shootdown_signal(void)
 {
-    struct monitor_signal_entry *mse;
-    int i, sig, ans1, ans2, ans3;
-
     if (shootdown_signal > 0) {
 	return shootdown_signal;
     }
+
+#if MONITOR_CHOOSE_SHOOTDOWN_EARLY
+
+    monitor_signal_init();
+    monitor_choose_shootdown_early();
+    return shootdown_signal;
+
+#else
+
+    struct monitor_signal_entry *mse;
+    int i, sig, ans1, ans2, ans3;
+
     MONITOR_SIGNAL_LOCK;
 
     /*
@@ -530,13 +701,41 @@ monitor_shootdown_signal(void)
     MONITOR_SIGNAL_UNLOCK;
 
     return shootdown_signal;
+
+#endif
 }
+
+#endif  // end of old shootdown, client signals code
+
 
 /*
  *----------------------------------------------------------------------
  *  SUPPORT FUNCTIONS
  *----------------------------------------------------------------------
  */
+
+/*
+ *  Adjust sa_flags according to the required and forbidden sets.
+ */
+static inline int
+monitor_adjust_saflags(int flags)
+{
+    return (flags | SAFLAGS_REQUIRED) & ~(SAFLAGS_FORBIDDEN);
+}
+
+/*
+ *  Adjust sa_mask to block the shootdown signal, so we don't call
+ *  fini-thread from inside another handler.  This is only for calls
+ *  to sigaction(), not sigprocmask().
+ */
+static inline int
+monitor_adjust_samask(sigset_t *set)
+{
+    if (set == NULL) {
+        return 0;
+    }
+    return sigaddset(set, shootdown_signal);
+}
 
 /*
  *  The client's sigaction.  If "act" is non-NULL, then use it for
@@ -566,7 +765,7 @@ monitor_sigaction(int sig, monitor_sighandler_t *handler,
     if (act != NULL) {
 	mse->mse_kern_act.sa_flags = monitor_adjust_saflags(act->sa_flags);
 	mse->mse_kern_act.sa_mask = act->sa_mask;
-	monitor_remove_client_signals(&mse->mse_kern_act.sa_mask);
+	monitor_adjust_samask(&mse->mse_kern_act.sa_mask);
 	(*real_sigaction)(sig, &mse->mse_kern_act, NULL);
     }
 
@@ -654,7 +853,8 @@ monitor_appl_sigaction(int sig, const struct sigaction *act,
 	mse->mse_appl_act = *act;
 	mse->mse_kern_act.sa_flags = monitor_adjust_saflags(act->sa_flags);
 	mse->mse_kern_act.sa_mask = act->sa_mask;
-	monitor_remove_client_signals(&mse->mse_kern_act.sa_mask);
+	monitor_remove_client_signals(&mse->mse_kern_act.sa_mask, SIG_BLOCK);
+	monitor_adjust_samask(&mse->mse_kern_act.sa_mask);
 	(*real_sigaction)(sig, &mse->mse_kern_act, NULL);
     }
 
@@ -686,33 +886,22 @@ MONITOR_WRAP_NAME(signal)(int sig, sighandler_fcn_t *handler)
 }
 
 /*
- *  Allow the application to modify the signal proc mask, but don't
- *  let it block a signal that the client catches.
+ *  Allow the application to modify the signal mask, but don't let it
+ *  change the mask for any signal in the keep open list.
  */
 int
 MONITOR_WRAP_NAME(sigprocmask)(int how, const sigset_t *set,
 			       sigset_t *oldset)
 {
-    char buf[MONITOR_SIG_BUF_SIZE];
-    char *type;
     sigset_t my_set;
 
     monitor_signal_init();
 
-    type = (how == SIG_UNBLOCK) ? "unblock" : "block";
-    if (monitor_debug) {
-	monitor_sigset_string(buf, MONITOR_SIG_BUF_SIZE, set);
-	MONITOR_DEBUG("(%s) request:%s\n", type, buf);
-    }
-
-    if (set != NULL && (how == SIG_BLOCK || how == SIG_SETMASK)) {
+    if (set != NULL) {
+	MONITOR_DEBUG1("\n");
 	my_set = *set;
-	monitor_remove_client_signals(&my_set);
+	monitor_remove_client_signals(&my_set, how);
 	set = &my_set;
-	if (monitor_debug) {
-	    monitor_sigset_string(buf, MONITOR_SIG_BUF_SIZE, set);
-	    MONITOR_DEBUG("(%s) actual: %s\n", type, buf);
-	}
     }
 
     return (*real_sigprocmask)(how, set, oldset);
