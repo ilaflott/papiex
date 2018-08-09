@@ -30,7 +30,7 @@ endif
 PAPI_PREFIX := $(DESTPREF)
 PAPI_INC_PATH ?= $(PAPI_PREFIX)/include
 PAPI_LIB_PATH ?= $(PAPI_PREFIX)/lib
-PAPI_CONFIGURE_ARGS = --with-debug --disable-perf_event_uncore --prefix=$(DESTPREF) --with-pfm-root=$(PWD)/libpfm
+PAPI_CONFIGURE_ARGS = --enable-perfevent_rdpmc=no --disable-perf_event_uncore --prefix=$(DESTPREF) --with-pfm-root=$(PWD)/libpfm
 
 MONITOR_PREFIX := $(DESTPREF)
 MONITOR_INC_PATH ?= $(MONITOR_PREFIX)/include
@@ -64,7 +64,8 @@ $(LIBPFM) install-libpfm:
 clean:
 	@if [ -d papi ]; then cd papi/src; [ ! -f Makefile ] || make clean; fi
 	@if [ -d monitor ]; then cd monitor; [ ! -f Makefile ] || make clean; fi
-	$(MAKE) -C libpfm clean 
+	$(MAKE) -C libpfm clean
+	rm -f *~ 
 
 .PHONY: distclean clobber
 distclean clobber: clean
@@ -100,8 +101,8 @@ post-install:
 
 .PHONY: test
 test:
-	bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
+	@bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
 
 .PHONY: fulltest
 fulltest:
-	bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'
+	@bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'

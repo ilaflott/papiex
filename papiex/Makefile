@@ -18,9 +18,9 @@ DEFINES += -DUSE_MPI
 include Rules.mpi
 endif
 
-ifneq (,$(FULL_CALIPER_DATA))
-DEFINES += -DFULL_CALIPER_DATA
-endif
+#ifneq (,$(FULL_CALIPER_DATA))
+# DEFINES += -DFULL_CALIPER_DATA
+#endif
 ifneq (,$(PROFILING_SUPPORT))
 DEFINES += -DPROFILING_SUPPORT
 endif

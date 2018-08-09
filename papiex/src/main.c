@@ -295,7 +295,7 @@ static int handle_common_opts(char c, const char* optarg, char **my_argv, int ve
     case ':':
     case '?':
       {
-        PAPIEX_ERROR ("Try '%s -h' for more information.\n",tool);
+        PAPIEX_ERROR ("Try '%s --help' for more information.",tool);
         exit (1);
         break;
       }
@@ -370,8 +370,8 @@ void print_common_papi_opts(void)
   printf (" -e event\tMonitor this event. May be repeated.\n");
   printf (" -l\t\tPrint a terse listing of all the available events to count.\n");
   printf (" -L event\tPrint a full description of this event.\n");
-  printf (" -m<interval>\tEnable counter multiplexing. Silently ignored if unavailable.\n"
-          "\t\tThe 'interval' is in Hz, and is optional (defaults to 10).\n");
+  //  printf (" -m<interval>\tEnable counter multiplexing. Silently ignored if unavailable.\n"
+  //          "\t\tThe 'interval' is in Hz, and is optional (defaults to 10).\n");
   printf (" -U\t\tMonitor user mode events (default).\n");
   printf (" -K\t\tMonitor kernel mode events\n");
   printf (" -I\t\tMonitor transient (interrupt) mode events.\n");
@@ -413,11 +413,9 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 
   tool = my_argv[0];
 
-  PAPI_set_debug(PAPI_VERB_ECONT);
   version = PAPI_library_init (PAPI_VER_CURRENT);
   if (version != PAPI_VER_CURRENT)
     PAPIEX_PAPI_ERROR ("PAPI_library_init", version);
-  PAPI_set_debug(PAPI_QUIET);
 
   PAPI_get_opt (PAPI_PRELOAD, &pl);
   strcpy (preload_env, pl.preload.lib_preload_env);
@@ -426,13 +424,13 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
   *ldpath_sep = pl.preload.lib_dir_sep;
 
   if ((hwinfo = PAPI_get_hardware_info ()) == NULL)
-    PAPIEX_PAPI_ERROR ("PAPI_query_all_events_verbose", 0);
+    PAPIEX_PAPI_ERROR ("PAPI_get_hardware_info", 0);
 
   if (my_argc)
     {
       while (1)
 	{
-	  c = getopt_long (my_argc, my_argv, "+dhisVqnwf:p:o:e:lL:m::UKISGQ::E:M::arx", // M::, 
+	  c = getopt_long (my_argc, my_argv, "+dhisVqnwf:p:o:e:lL:UKISGQ::E:M::arx", // M::m, 
                              long_options, NULL);
 
 	  if (c == -1)
@@ -472,7 +470,8 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  printf
 		    ("Usage:\n"
 		     "papiex [-dhisVqnwlUKISEGQarx] [--classic] [-f output-dir] [-p prefix] [-o output-file]\n"
-         "       [-e papi_event] [--test] [-m<interval>] [-L papi_event].. \n"
+         "       [-e papi_event] [--test] [-L papi_event]\n"
+		     // "[-m<interval>]" 
 #ifdef HAVE_BINUTILS
          "       [--gnu] [--pathscale[=loop,func,all]\n"
 #endif /* HAVE_BINUTILS */
@@ -488,7 +487,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  print_common_instr_opts();
 		  printf (" --csv\t\tPrint machine-readable CSV output.\n"
               "\t\tThis option will silently ignore --classic.\n");
-		  printf (" -a\t\tMonitor 'useful' events automatically (-m and -x are implicit).\n");
+		  //		  printf (" -a\t\tMonitor 'useful' events automatically (-m and -x are implicit).\n");
 		  printf (" -r\t\tReport getrusage() information.\n");
 		  printf (" -x\t\tReport memory usage information.\n");
 		  printf (" --classic\tForce papiex to run in the old classic mode.\n");
@@ -521,18 +520,19 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		case 'q':
 		  if (strstr (option_string, "RUSAGE"))
 		    {
-		      PAPIEX_ERROR ("-r and -q are not compatible.\n");
+		      PAPIEX_ERROR ("-r and -q are not compatible.");
 		      exit (1);
 		    }
 		  append_option (option_string, "QUIET");
 		  break;
+#if 0
 		case 'm':
 		  append_option (option_string, "MULTIPLEX");
 		  multiplex = 1;
                   if (optarg != NULL) {
                     int val=strtol(optarg, (char **)NULL, 10);
                     if ((errno == ERANGE) || (val <= 0)) {
-                      PAPIEX_ERROR("The argument to '-m' must be a positive integer\n");
+                      PAPIEX_ERROR("The argument to '-m' must be a positive integer.");
                       exit(1);
                     }
                     char interval[25];
@@ -540,10 +540,11 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
                     append_option(option_string, interval);
                   }
 		  break;
+#endif
 		case 'r':
 		  if (strstr (option_string, "QUIET"))
 		    {
-		      PAPIEX_ERROR ("-r and -q are not compatible.\n");
+		      PAPIEX_ERROR ("-r and -q are not compatible.");
 		      exit (1);
 		    }
 		  append_option (option_string, "RUSAGE");
@@ -551,7 +552,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		case 'x':
 		  if (strstr (option_string, "QUIET"))
 		    {
-		      PAPIEX_ERROR ("-x and -q are not compatible.\n");
+		      PAPIEX_ERROR ("-x and -q are not compatible.");
 		      exit (1);
 		    }
 		  append_option (option_string, "MEMORY");
@@ -560,7 +561,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		    if (strstr (option_string, "DIR") || strstr(option_string, "FILE") || strstr(option_string, "PREFIX") ||
                         strstr (option_string, "WRITE_ONLY"))
 		      {
-			PAPIEX_ERROR ("-n is not compatible with -f, -o, -p or -w.\n");
+			PAPIEX_ERROR ("-n is not compatible with -f, -o, -p or -w.");
 			exit (1);
 		      }
 		  append_option (option_string, "NO_WRITE");
@@ -568,7 +569,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		case 'w':
 		  if (strstr (option_string, "NO_WRITE"))
 		    {
-		      PAPIEX_ERROR ("-w and -n are not compatible.\n");
+		      PAPIEX_ERROR ("-w and -n are not compatible.");
 		      exit (1);
 		    }
 		  append_option (option_string, "WRITE_ONLY");
@@ -589,7 +590,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  {
 		    if (strstr (option_string, "DIR") || strstr(option_string, "FILE") || strstr(option_string, "NO_WRITE"))
 		      {
-			PAPIEX_ERROR ("-p is not compatible with -f, -o and -n.\n");
+			PAPIEX_ERROR ("-p is not compatible with -f, -o and -n.");
 			exit (1);
 		      }
 		    if (optarg == NULL)
@@ -607,7 +608,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  {
 		    if (strstr (option_string, "PREFIX") || strstr(option_string, "FILE") || strstr(option_string, "NO_WRITE"))
 		      {
-			PAPIEX_ERROR ("-f is not compatible with -n, -p and -o.\n");
+			PAPIEX_ERROR ("-f is not compatible with -n, -p and -o.");
 			exit (1);
 		      }
 		    append_option (option_string, "DIR");
@@ -618,7 +619,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  {
 		    if (strstr (option_string, "PREFIX") || strstr(option_string, "DIR") || strstr(option_string, "NO_WRITE"))
 		      {
-			PAPIEX_ERROR ("-o is not compatible with -n, -f and -p.\n");
+			PAPIEX_ERROR ("-o is not compatible with -n, -f and -p.");
 			exit (1);
 		      }
 		    append_option (option_string, "FILE");
@@ -642,8 +643,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  }
 		default:
 		  error:
-		    PAPIEX_ERROR ("Try `%s -h' for more information.\n", my_argv[0]);
-		    exit (1);
+		    PAPIEX_ERROR ("Try `%s --help' for more information.", my_argv[0]);
 		  }
 	    } /* while */
 	}
@@ -692,21 +692,20 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
   }
 
   /* Test PAPI events for sanity and availability */
+  if (strlen(events) == 0) 
+    strcpy(events,"PERF_COUNT_SW_CPU_CLOCK,PERF_COUNT_SW_TASK_CLOCK");
+  strncpy(requested_events, events, sizeof(requested_events));
+
+  if (!no_compat_check || test_events_only || skip_unavailable_events) {
+    int rc = test_papi_events(events);
+    PAPIEX_DEBUG("test_papi_events: returned %d\n", rc);
+    if ((!no_compat_check || skip_unavailable_events) && (rc != PAPI_OK))
+      make_compatible_eventset(events);
+  } 
+  strncpy(successful_events, events, sizeof(successful_events));
+
   /* Add the fixed up events to the list of options */
-  if (strlen(events)) {
-    strncpy(requested_events, events, sizeof(requested_events));
-    if (!no_compat_check) {
-      int rc = test_papi_events(events);
-      PAPIEX_DEBUG("test_papi_events: returned %d\n", rc);
-      if ((test_events_only || auto_stats || skip_unavailable_events) && (rc != PAPI_OK))
-        make_compatible_eventset(events);
-    }
-    strncpy(successful_events, events, sizeof(successful_events));
-    append_option (option_string, events);
-  }
-  if (no_compat_check) {
-    PAPIEX_DEBUG("--no-compat-check set, so events not tested for compatibility\n");
-  }
+  append_option (option_string, events);
 
   /* Process the long options */
   if (no_mpi_gather) {
@@ -756,7 +755,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 
       if (my_argv[optind] == NULL)
 	{
-	  PAPIEX_WARN ("no command given\n");
+	  //	  PAPIEX_WARN ("no command given\n");
 	  goto error;
 	}
 
@@ -886,9 +885,7 @@ static void get_useful_events(char *events, int maxlen) {
       if (strlen(events)) 
         strcat(events, ",");
       if (strlen(mips_74K_useful_events)+len >= maxlen-1) {
-        PAPIEX_ERROR("Cannot fit all the useful events in the buffer\n"
-                     "Please allocate a bigger buffer!\n");
-        exit(2);
+        PAPIEX_ERROR("cannot fit all the useful events in the buffer.");
       } 
       strcat(events, mips_74K_useful_events);
       return;
@@ -900,9 +897,7 @@ static void get_useful_events(char *events, int maxlen) {
       if (strlen(events)) 
         strcat(events, ",");
       if (strlen(sc_ice9A_useful_events)+len >= maxlen-1) {
-        PAPIEX_ERROR("Cannot fit all the useful events in the buffer\n"
-                     "Please allocate a bigger buffer!\n");
-        exit(2);
+        PAPIEX_ERROR("cannot fit all the useful events in the buffer.")
       } 
       strcat(events, sc_ice9A_useful_events);
       return;
@@ -915,8 +910,7 @@ static void get_useful_events(char *events, int maxlen) {
         strcat(events, ",");
       if (strlen(sc_ice9B_useful_events)+len >= maxlen-1) {
         PAPIEX_ERROR("Cannot fit all the useful events in the buffer\n"
-                     "Please allocate a bigger buffer!\n");
-        exit(2);
+                     "Please allocate a bigger buffer!");
       } 
       strcat(events, sc_ice9B_useful_events);
       return;
@@ -931,9 +925,7 @@ static void get_useful_events(char *events, int maxlen) {
         events_list = westmere_events;
       }
       if (strlen(events_list)+len >= maxlen-1) {
-        PAPIEX_ERROR("Cannot fit all the useful events in the buffer\n"
-                     "Please allocate a bigger buffer!\n");
-        exit(2);
+        PAPIEX_ERROR("cannot fit all the useful events in the buffer.");
       } 
       strcat(events, events_list);
       return;
@@ -942,9 +934,7 @@ static void get_useful_events(char *events, int maxlen) {
 
   /* Default, for unknown architectures */
   if (strlen(papi_useful_presets)+len >= maxlen-1) {
-    PAPIEX_ERROR("Cannot fit all the useful events in the buffer\n"
-                 "Please allocate a bigger buffer!\n");
-    exit(2);
+    PAPIEX_ERROR("cannot fit all the useful events in the buffer.");
   } 
   append_option(events, papi_useful_presets);
 /*
@@ -1097,7 +1087,7 @@ static int test_papi_events(const char *events) {
       //PAPIEX_DEBUG("added event %s with code %d to eventset\n", tmp, eventcode);
       i++;
       if (i == PAPIEX_MAX_COUNTERS)
-     	PAPIEX_ERROR("Exceeded maximum number of events allowed by papiex (%d).\n",PAPIEX_MAX_COUNTERS);
+     	PAPIEX_ERROR("exceeded maximum number of events allowed by papiex (%d).",PAPIEX_MAX_COUNTERS);
     } while ((tmp=strtok(NULL, ",")));
 
     if (multiplex) {
@@ -1255,56 +1245,67 @@ static int make_compatible_eventset(char *events) {
 
 void dump_shell_vars(char *optstr, char *outstr, char *preload_env, char *preload_val, char *ldpath_env, char *ldpath_val)
 {
-  char *basesh;
+  char *method, *sep;
+  char *basesh = NULL;
   char *sh = getenv ("SHELL");
-  int not_csh = 0;
+  int not_csh = 1;
   
   if ((sh == NULL) || (strlen (sh) == 0))
     {
-    bail:
-      PAPIEX_ERROR ("Error: no valid SHELL environment variable\n");
-      exit (1);
+      PAPIEX_WARN ("SHELL env var not set, assuming bash");
+      not_csh = 1;
     }
-  basesh = basename (sh);
-  if ((basesh == NULL) || (strlen (basesh) == 0))
-    goto bail;
+  else
+    {
+      basesh = basename(sh);
+      if (!basesh) {
+	PAPIEX_WARN ("basename failed on SHELL env var %s, assuming bash",sh);
+	not_csh = 1; 
+      }
+      else if ((strcmp (basesh, "csh") == 0) || (strcmp (basesh, "tcsh") == 0))
+	not_csh = 0;
+    }
   
-  if ((strcmp (basesh, "bash") == 0) || (strcmp (basesh, "sh") == 0) ||
-      (strcmp (basesh, "zsh") == 0) || (strcmp (basesh, "ksh") == 0) ||
-      (strcmp (basesh, "ash") == 0))
-    not_csh = 1;
-  
+  if (not_csh) {
+    method = "export";
+    sep = "=";
+  } else {
+    method = "setenv";
+    sep = " ";
+  }
+
+  printf ("# papiex version %s built on %s, %s\n",PAPIEX_VERSION,__DATE__,__TIME__);
   if (getenv(PAPIEX_DEFAULT_ARGS)) 
-    printf ("%s %s%s\"%s\";\n", (not_csh ? "export" : "setenv"), PAPIEX_DEFAULT_ARGS,
-	    (not_csh ? "=" : " "), getenv(PAPIEX_DEFAULT_ARGS));
+    printf ("%s %s%s\"%s\";\n", method, PAPIEX_DEFAULT_ARGS,
+	    sep, getenv(PAPIEX_DEFAULT_ARGS));
 
   if (getenv(PAPIEX_ENV)) 
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"), PAPIEX_ENV,
-	    (not_csh ? "=" : " "), optstr);
+    printf ("%s %s%s%s;\n", method, PAPIEX_ENV,
+	    sep, optstr);
 
   if (getenv(PAPIEX_OUTPUT_ENV))
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"),
-	    PAPIEX_OUTPUT_ENV, (not_csh ? "=" : " "), outstr);
+    printf ("%s %s%s%s;\n", method,
+	    PAPIEX_OUTPUT_ENV, sep, outstr);
   
   if (getenv("PAPIEX_DEBUG"))
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"),
-	    "PAPIEX_DEBUG", (not_csh ? "=" : " "), "1");
+    printf ("%s %s%s%s;\n", method,
+	    "PAPIEX_DEBUG", sep, "1");
 
   if (getenv("MONITOR_DEBUG"))
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"),
-	    "MONITOR_DEBUG", (not_csh ? "=" : " "), "1");
+    printf ("%s %s%s%s;\n", method,
+	    "MONITOR_DEBUG", sep, "1");
 
   if (getenv("MONITOROPTIONS"))
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"),
-	    "MONITOROPTIONS", (not_csh ? "=" : " "), "1");
+    printf ("%s %s%s%s;\n", method,
+	    "MONITOROPTIONS", sep, "1");
   
   if (getenv(preload_env))
-    printf ("%s %s%s\"%s\";\n", (not_csh ? "export" : "setenv"),
-	    preload_env, (not_csh ? "=" : " "), preload_val);
+    printf ("%s %s%s\"%s\";\n", method,
+	    preload_env, sep, preload_val);
 
   if (getenv(ldpath_env))
-    printf ("%s %s%s%s;\n", (not_csh ? "export" : "setenv"), ldpath_env,
-	    (not_csh ? "=" : " "), getenv(ldpath_env));
+    printf ("%s %s%s%s;\n", method, ldpath_env,
+	    sep, getenv(ldpath_env));
 }
 
 int
@@ -1327,7 +1328,6 @@ main (int argc, char **argv)
   char *optstr = NULL;
   char new_ld_path[PATH_MAX];
 
-
   /* Add default arguments if any */
   int myargc = argc;
   char** myargv = argv;
@@ -1335,8 +1335,7 @@ main (int argc, char **argv)
   if ((strcmp(basename(argv[0]), "papiex")==0) && default_args) {
     myargv = malloc(sizeof(char *)*256);
     if (myargv == NULL) {
-      fprintf(stderr, "malloc failed. Quitting now!\n");
-      exit(1);
+      PAPIEX_ERROR("malloc of argument buffer failed.");
     }
     myargv[0] = argv[0];
     myargc = 1;
@@ -1356,9 +1355,7 @@ main (int argc, char **argv)
     for (j=0; j<myargc; j++)
       fprintf(stderr, "myargv[%d] = %s\n", j, myargv[j]);
   */
-  optstr =
-    parse_args (myargc, myargv, &cmd, &cmd_argv, preload_env, &preload_sep, ldpath_env, &ldpath_sep,
-		outstr);
+  optstr = parse_args (myargc, myargv, &cmd, &cmd_argv, preload_env, &preload_sep, ldpath_env, &ldpath_sep, outstr);
   if ((optstr == NULL) || (strlen (optstr) == 0))
     sprintf (tmpstr, "%s= ", PAPIEX_ENV);
   else
@@ -1423,7 +1420,6 @@ main (int argc, char **argv)
     strcat(tmpstr2, getenv(preload_env));
   }
 
-
   /* Do we need to modify LD_LIBRARY_PATH? */
   if (!no_ld_library_path) {
      new_ld_path[0] = '\0';
@@ -1453,40 +1449,34 @@ main (int argc, char **argv)
       }
   } /* no_ld_library_path */
 
-  if (strlen(tmpstr2))
+  if (strlen(tmpstr2)) 
     setenv (preload_env, tmpstr2, 1);
-  setenv (PAPIEX_ENV, optstr, 1);
-  setenv (PAPIEX_OUTPUT_ENV, outstr, 1);
-  if (debug > 1) {
+  if (strlen(PAPIEX_ENV))
+      setenv (PAPIEX_ENV, optstr, 1);
+  if (strlen(outstr))
+    setenv (PAPIEX_OUTPUT_ENV, outstr, 1);
+  if (debug > 1) 
     setenv ("MONITOR_DEBUG","1",1);
-  }
   setenv ("MONITOR_OPTIONS","SIGINT",1);
-  
-  if ((debug >= 1) || (shell_dump))
-    dump_shell_vars(optstr,outstr,preload_env,tmpstr2,ldpath_env,new_ld_path);
 
   if (could_not_add_some_events && !auto_stats) {
     PAPIEX_WARN("Could not add one or more events for measurement\n");
   }
+
   if (test_events_only) {
-    if (!strlen(requested_events)) {
-      PAPIEX_ERROR("--test needs one or more events to be tested with -e\n");
-    }
-    fprintf(stderr, "Accepted Event(s): %s\n", successful_events);
-    if (!could_not_add_some_events) {
-      fprintf(stderr, "All events are available and compatible\n");
-      exit(0);
-    }
-    else {
-      if (strlen(unavailable_events))
-        fprintf(stderr, "Unavailable Event(s): %s\n", unavailable_events);
-      if (strlen(incompatible_events))
-        fprintf(stderr, "Incompatible/Hardware-Unsupported Event(s): %s\n", incompatible_events);
-      exit(1);
-    }
+    if (strlen(successful_events))
+      printf("Valid event(s): %s\n", successful_events);
+    if (strlen(incompatible_events))
+      printf("Unsupported event(s): %s\n", incompatible_events);
+    if (strlen(unavailable_events))
+      printf("Unknown event(s): %s\n", unavailable_events);
+  }
+  
+  if ((debug > 1) || (shell_dump)) {
+    dump_shell_vars(optstr,outstr,preload_env,tmpstr2,ldpath_env,new_ld_path);
   }
 
-  if (shell_dump || test_events_only)
+  if (test_events_only || shell_dump)
     exit(0);
 
   if (fork () == 0)
@@ -1499,8 +1489,7 @@ main (int argc, char **argv)
             sprintf(path, "%s%c.", getenv("PATH"), ldpath_sep);
           setenv("PATH", path, 1);
           if (execvp (cmd, cmd_argv) == -1) {
-	    PAPIEX_ERROR ("Error exec'ing %s: %s\n", cmd, strerror (errno));
-	    exit (1);
+	    PAPIEX_ERROR ("exec'ing %s: %s", cmd, strerror (errno));
           }
 	}
       exit(0);

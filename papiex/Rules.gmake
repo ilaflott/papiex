@@ -120,8 +120,10 @@ dist: $(LIBNAME)-$(VERSION).tar.gz
 .PHONY: test tests fulltest
 test tests fulltest:
 	cd $(build-dir)/tests; ./ng-driver
-#	cd $(build-dir)/tests; ./runtests
-#	cd $(build-dir)/tests; ./runtests ; clear;  ./run_ex_tests
+
+.PHONY: test_dbg tests_dbg fulltest_dbg
+test_dbg tests_dbg fulltest_dbg:
+	cd $(build-dir)/tests; DEBUG=1 ./ng-driver
 
 .PHONY: quicktest
 quicktest:

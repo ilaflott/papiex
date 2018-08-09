@@ -53,8 +53,8 @@ static volatile int multiplex;
 static int papi_mpx_zero_counts_bug = 0;
 static unsigned long long init_virt_cyc = 0;
 
-static int papi_broken_stop =0 ;
-static int mpx_interval= PAPIEX_DEFAULT_MPX_HZ; // in Hertz
+static int papi_broken_stop = 0;
+static int mpx_interval = 0; // in Hertz
 static int no_derived_stats;
 int _papiex_threaded;
 /* To satisfy eventinfo.c used in libpapiex.so */
@@ -115,8 +115,8 @@ static int all_threads_size = PAPIEX_INIT_THREADS;
  * ideally add fields for start and end time in the
  * PAPI_all_thread structure
  */
-static struct timeval proc_init_time ;
-static struct timeval proc_fini_time ;
+static struct timeval proc_init_time = { 0, 0 };
+static struct timeval proc_fini_time = { 0, 0 };
 
 /* Note: is_mpied is set ONLY when the MPI library is _used_ 
  * We do not set it merely on linking with the MPI library.
@@ -206,6 +206,82 @@ static float get_running_usecs(void) {
   return usecs;
 }
 
+FILE **proc_stat_fp_to_close = NULL;
+static void get_proc_stat_fields_after_main(void) __attribute__((destructor));
+static void get_proc_stat_fields_after_main(void)
+{
+  if (proc_stat_fp_to_close) {
+    FILE *t = *proc_stat_fp_to_close;
+    *proc_stat_fp_to_close = NULL;
+    fclose(t);
+  }
+}
+
+static int get_proc_stat_fields(unsigned long long *minflt, unsigned long long *majflt, unsigned long long *utime_jifs, unsigned long long *stime_jifs, unsigned long long *nthr, unsigned long long *starttime_jifs, unsigned long long *iodelay_jifs, unsigned long long *guesttime_jifs)
+{
+  static FILE *fp = NULL;
+  int rv; 
+  if (fp == NULL) {
+    char fn[256];
+    FILE *t;
+
+    sprintf(fn,"/proc/%lu/stat",(long unsigned int)getpid());
+    t = fopen(fn, "r");
+    if (t == NULL) // Quick bail
+      return(-1);
+    if (setvbuf(t, NULL, _IONBF, 0) < 0) { // Unbuffered
+      fclose(t);
+      return(-1);
+    }
+    fp = t;
+    proc_stat_fp_to_close = &fp; // Close at _fini
+  }
+  rv = fscanf(fp, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %llu %*u %llu %*u %llu %llu %*d %*d %*d %*d %llu %*d %llu %*u %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*u %*u %llu %llu %*d", minflt, majflt, utime_jifs, stime_jifs, nthr, starttime_jifs, iodelay_jifs, guesttime_jifs);
+  rewind(fp);
+  return(rv);
+}
+
+//#define PAPIEX_UNIT_TEST
+#ifdef PAPIEX_UNIT_TEST
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <assert.h>
+#include <dlfcn.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fenv.h>
+#include <getopt.h>
+#include <limits.h>
+#include <malloc.h>
+#include <math.h>
+#include <memory.h>
+#include <search.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+
+int main()
+{
+  unsigned long long a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0;;
+  for (int i = 0; i < 100000; i++) {
+    int rv = get_proc_stat_fields(&a, &b, &c, &d, &e, &f, &g, &h);
+    if (i % 10000 == 0) {
+      printf("rv %d minflt %llu majflt %llu utime %llu stime %llu nthr %llu starttime %llu iodelay %llu guesttime %llu\n",rv,a,b,c,d,e,f,g,h); 
+      char fn[256];
+      sprintf(fn,"cat /proc/%lu/stat",(long unsigned int)getpid());
+      printf("%s:\n",fn);
+      system(fn);
+    }
+  }
+}
+#endif
 
 static void set_base_output_path(char* prefix, char* user_spec_file) {
   if (user_spec_file && strlen(user_spec_file)) {
@@ -643,7 +719,7 @@ static void print_executable_info(FILE *output) {
   sprintf(tool_version, "%s version", tool);
   sprintf(tool_build, "%s build", tool);
   fprintf(output,"%-30s: %s\n", tool_version, PAPIEX_VERSION);
-  fprintf(output,"%-30s: %s/%s\n", tool_build, __DATE__, __TIME__);
+  fprintf(output,"%-30s: %s/%s\n", tool_build, build_date, build_time);
   fprintf(output,"%-30s: %s\n", "Executable", fullname);
   fprintf(output,"%-30s: %s\n", "Arguments", process_args);
   fprintf(output,"%-30s: %s\n", "Processor", processor);
@@ -662,21 +738,20 @@ static void print_executable_info(FILE *output) {
 static void print_rusage_stats(FILE *output) {
   struct rusage ru;
   getrusage(RUSAGE_SELF,&ru);
-  pretty_printl(output, "Max resident", 0, ru.ru_maxrss);
-  pretty_printl(output, "Shared", 0, ru.ru_ixrss);
-  pretty_printl(output, "Data", 0, ru.ru_idrss);
-  pretty_printl(output, "Stack", 0, ru.ru_isrss);
-  pretty_printl(output, "Min faults", 0, ru.ru_minflt);
-  pretty_printl(output, "Page faults", 0, ru.ru_majflt);
-  pretty_printl(output, "Swaps", 0, ru.ru_nswap);
-  pretty_printl(output, "Block dev inputs", 0, ru.ru_inblock);
-  pretty_printl(output, "Block dev outputs", 0, ru.ru_oublock);
-  pretty_printl(output, "Msgs sent", 0, ru.ru_msgsnd);
-  pretty_printl(output, "Msgs received", 0, ru.ru_msgrcv);
-  pretty_printl(output, "Signals", 0, ru.ru_nsignals);
-  pretty_printl(output, "Voluntary yields", 0, ru.ru_nvcsw);
-  pretty_printl(output, "Preemptions", 0, ru.ru_nivcsw);
-  return;
+  pretty_printl(output, "[PROCESS] getrusage resident max KB", 0, ru.ru_maxrss);
+  //  pretty_printl(output, "Shared", 0, ru.ru_ixrss);
+  // pretty_printl(output, "Data", 0, ru.ru_idrss);
+  // pretty_printl(output, "Stack", 0, ru.ru_isrss);
+  pretty_printl(output, "[PROCESS] getrusage minor faults", 0, ru.ru_minflt);
+  pretty_printl(output, "[PROCESS] getrusage major faults", 0, ru.ru_majflt);
+  // pretty_printl(output, "Swaps", 0, ru.ru_nswap);
+  pretty_printl(output, "[PROCESS] getrusage block inputs", 0, ru.ru_inblock);
+  pretty_printl(output, "[PROCESS] getrusage block outputs", 0, ru.ru_oublock);
+  //  pretty_printl(output, "Msgs sent", 0, ru.ru_msgsnd);
+  // pretty_printl(output, "Msgs received", 0, ru.ru_msgrcv);
+  // pretty_printl(output, "Signals", 0, ru.ru_nsignals);
+  pretty_printl(output, "[PROCESS] getrusage voluntary preemptions", 0, ru.ru_nvcsw);
+  pretty_printl(output, "[PROCESS] getrusage involuntary preemptions", 0, ru.ru_nivcsw);
 }
 
 static void print_derived_stats(FILE* output, papiex_perthread_data_t *thread, unsigned int index, 
@@ -1045,148 +1120,121 @@ static inline void print_all_pretty_stats(FILE* output, papiex_perthread_data_t 
 }
 
 
-static void print_counters(FILE *output, papiex_perthread_data_t *thread) {
-#ifdef HAVE_PAPI
+static void print_proc_stats(FILE *output, papiex_perthread_data_t *thread)
+{
+  unsigned long long proc_minflt = 0;
+  unsigned long long proc_majflt = 0;
+  unsigned long long proc_utime_jifs = 0;
+  unsigned long long proc_stime_jifs = 0;
+  unsigned long long proc_nthr = 0;
+  unsigned long long proc_starttime_jifs = 0;
+  unsigned long long proc_blkio_delays_jifs = 0;
+  unsigned long long proc_guesttime_jifs = 0;
+
+  /* Get timestamp of process start from /proc */
+  get_proc_stat_fields(&proc_minflt, &proc_majflt, &proc_utime_jifs, &proc_stime_jifs, &proc_nthr, &proc_starttime_jifs, &proc_blkio_delays_jifs, &proc_guesttime_jifs);
+  
+  // pretty_printl(output, "[PROCESS] getrusage resident max KB", 0, ru.ru_maxrss);
+  //  pretty_printl(output, "Shared", 0, ru.ru_ixrss);
+  // pretty_printl(output, "Data", 0, ru.ru_idrss);
+  // pretty_printl(output, "Stack", 0, ru.ru_isrss);
+  pretty_printl(output, "[PROCESS] proc minor faults", 0, proc_minflt);
+  pretty_printl(output, "[PROCESS] proc major faults", 0, proc_majflt);
+  pretty_printl(output, "[PROCESS] proc utime jiffies", 0, proc_utime_jifs);
+  pretty_printl(output, "[PROCESS] proc stime jiffies", 0, proc_stime_jifs);
+  pretty_printl(output, "[PROCESS] proc num threads", 0, proc_nthr);
+  pretty_printl(output, "[PROCESS] proc start time after boot jiffies", 0, proc_starttime_jifs);
+  pretty_printl(output, "[PROCESS] proc block IO delays jiffies", 0, proc_blkio_delays_jifs);
+  pretty_printl(output, "[PROCESS] proc guest time jiffies", 0, proc_guesttime_jifs);
+  // pretty_printl(output, "Swaps", 0, ru.ru_nswap);
+  //  pretty_printl(output, "[PROCESS] getrusage block inputs", 0, ru.ru_inblock);
+  // pretty_printl(output, "[PROCESS] getrusage block outputs", 0, ru.ru_oublock);
+  //  pretty_printl(output, "Msgs sent", 0, ru.ru_msgsnd);
+  // pretty_printl(output, "Msgs received", 0, ru.ru_msgrcv);
+  // pretty_printl(output, "Signals", 0, ru.ru_nsignals);
+  // pretty_printl(output, "[PROCESS] getrusage voluntary preemptions", 0, ru.ru_nvcsw);
+  // pretty_printl(output, "[PROCESS] getrusage involuntary preemptions", 0, ru.ru_nivcsw);
+}
+
+static void print_counters(FILE *output, papiex_perthread_data_t *thread) 
+{
   int i,j;
-  if (quiet || papiex_nextgen) {
-    if (multiplex && (thread->data[0].virt_usec <= ((1000000 * PAPIEX_MPX_MIN_SAMPLES)/mpx_interval))) {
-      // make sure you have an empty line after the warning 
-      // so the report parser can pick the start and finish of
-      // the warning.
-      fprintf(output, "\n--- WARNING ---\n"
-               "This thread ran for %4.2f secs (CPU time), which is less than the time\n"
-               "(%4.2f secs) needed to get the minimum %d samples. The numbers are suspect.\n"
-               "Try the run without multiplex (without -a and -m) or increase the multiplex\n"
-	       "frequency. You can increase the frequency from the current %d by specifying\n"
-               "-m<interval> to get more samples.\n\n",
-                ((float)thread->data[0].virt_usec/1000000), ((float)PAPIEX_MPX_MIN_SAMPLES/mpx_interval), PAPIEX_MPX_MIN_SAMPLES, mpx_interval);
+  if (multiplex && (thread->data[0].virt_usec <= 100000)) {
+    // make sure you have an empty line after the warning 
+    // so the report parser can pick the start and finish of
+    // the warning. 
+    // Fix this: This is bullshit -pjm
+    //		"frequency. You can increase the frequency by specifying -m<interval>.\n\n"
+    fprintf(output, "\n--- WARNING ---\n"
+	    "This thread ran for %4.2f secs (CPU time), which is less than the time\n"
+	    "(%4.2f secs) needed to get a minimum number of samples from multiplexing.\n"
+	    "The numbers are therefor suspect - try runing without without -a or -m.\n"
+	    ,(float)thread->data[0].virt_usec/100000.0, .10);
+    
+  }
+  fprintf(output,"%-16lld [PROCESS] Wallclock usecs\n", 
+	  (long long int)((1000000 * proc_fini_time.tv_sec + proc_fini_time.tv_usec) -
+			  (1000000 * proc_init_time.tv_sec + proc_init_time.tv_usec)));
+  fprintf(output,"%-16lld Real usecs\n",thread->data[0].real_usec);
+  fprintf(output,"%-16lld Real cycles\n",thread->data[0].real_cyc);
+  fprintf(output,"%-16lld Virtual usecs\n",thread->data[0].virt_usec);
+  fprintf(output,"%-16lld Virtual cycles\n",thread->data[0].virt_cyc);
+  
+  if (!no_mpi_prof && is_mpied) {
+    fprintf(output,"%-16lld MPI cycles\n",thread->papiex_mpiprof);
+    fprintf(output,"%-16lld MPI Sync cycles\n",thread->papiex_mpisyncprof);
+  }
+  
+  if (!no_io_prof)
+    fprintf(output,"%-16lld IO cycles\n",thread->papiex_ioprof);
+  
+  if (!no_threadsync_prof)
+    fprintf(output,"%-16lld Thr Sync cycles\n",thread->papiex_threadsyncprof);
+  
+  for (i=0;i<eventcnt;i++)
+    fprintf(output,"%-16lld %s\n",thread->data[0].counters[i],eventnames[i]);
+  for (j=1;j<thread->max_caliper_entries;j++) {
+    if (thread->data[j].used >0) {
+      const char* label = thread->data[j].label ;
+      /* if the user didn't set a label string use the calliper index */
+      char index_s[32];
+      if (label == NULL) {
+	snprintf(index_s, sizeof(index_s), "Caliper %d", j);
+	label = index_s;
       }
-    fprintf(output,"%-16lld [PROCESS] Wallclock usecs\n", (long long int)((1000000 * proc_fini_time.tv_sec + proc_fini_time.tv_usec) -
-                            (1000000 * proc_init_time.tv_sec + proc_init_time.tv_usec)));
-
-    fprintf(output,"%-16lld Real usecs\n",thread->data[0].real_usec);
-    fprintf(output,"%-16lld Real cycles\n",thread->data[0].real_cyc);
-    fprintf(output,"%-16lld Virtual usecs\n",thread->data[0].virt_usec);
-    fprintf(output,"%-16lld Virtual cycles\n",thread->data[0].virt_cyc);
-    if (!no_mpi_prof && is_mpied) {
-      fprintf(output,"%-16lld MPI cycles\n",thread->papiex_mpiprof);
-      fprintf(output,"%-16lld MPI Sync cycles\n",thread->papiex_mpisyncprof);
-    }
-    if (!no_io_prof)
-      fprintf(output,"%-16lld IO cycles\n",thread->papiex_ioprof);
-    if (!no_threadsync_prof)
-      fprintf(output,"%-16lld Thr Sync cycles\n",thread->papiex_threadsyncprof);
-    for (i=0;i<eventcnt;i++)
-      fprintf(output,"%-16lld %s\n",thread->data[0].counters[i],eventnames[i]);
-      for (j=1;j<thread->max_caliper_entries;j++) {
-        if (thread->data[j].used >0) {
-          const char* label = thread->data[j].label ;
-          fprintf(output,"\n%-16lld [LABEL] %s\n",(long long)j, label);
-
-          /* if the user didn't set a label string use the calliper index */
-          char index_s[32];
-          if (strlen(thread->data[j].label) == 0) {
-            snprintf(index_s, sizeof(index_s), "%d", j);
-            label = index_s;
-          }
-
-          fprintf(output,"%-16lld [%s] Measurements\n",(long long)thread->data[j].used, label);
-          fprintf(output,"%-16lld [%s] Real cycles\n",thread->data[j].real_cyc, label);
+      fprintf(output,"\n%-16lld [LABEL] %s\n",(long long)j, label);
+      fprintf(output,"%-16lld [%s] Measurements\n",(long long)thread->data[j].used, label);
+      fprintf(output,"%-16lld [%s] Real cycles\n",thread->data[j].real_cyc, label);
 #ifdef FULL_CALIPER_DATA
-          fprintf(output,"%-16lld [%s] Real usecs\n",thread->data[j].real_usec, label);
-          fprintf(output,"%-16lld [%s] Virtual usecs\n",thread->data[j].virt_usec, label);
-          fprintf(output,"%-16lld [%s] Virtual cycles\n",thread->data[j].virt_cyc, label);
-          if (!no_mpi_prof && is_mpied) {
-            fprintf(output,"%-16lld [%s] MPI cycles\n",thread->data[j].mpiprof, label);
-            fprintf(output,"%-16lld [%s] MPI Sync cycles\n",thread->data[j].mpisyncprof, label);
-          }
-          if (!no_io_prof)
-            fprintf(output,"%-16lld [%s] IO cycles\n",thread->data[j].ioprof, label);
-          if (!no_threadsync_prof)
-            fprintf(output,"%-16lld [%s] Thr Sync cycles\n",thread->data[j].threadsyncprof, label);
-#endif
-          for (i=0;i<eventcnt;i++)
-            fprintf(output,"%-16lld [%s] %s\n",thread->data[j].counters[i], label, eventnames[i]);
-	}
+      fprintf(output,"%-16lld [%s] Real usecs\n",thread->data[j].real_usec, label);
+      fprintf(output,"%-16lld [%s] Virtual usecs\n",thread->data[j].virt_usec, label);
+      fprintf(output,"%-16lld [%s] Virtual cycles\n",thread->data[j].virt_cyc, label);
+      
+      if (!no_mpi_prof && is_mpied) {
+	fprintf(output,"%-16lld [%s] MPI cycles\n",thread->data[j].mpiprof, label);
+	fprintf(output,"%-16lld [%s] MPI Sync cycles\n",thread->data[j].mpisyncprof, label);
       }
-  } /* quiet */
-
-  else {
-    /* not quiet */
-    pretty_printl(output,"Real usecs",0,thread->data[0].real_usec);
-    pretty_printl(output,"Real cycles",0,thread->data[0].real_cyc);
-    pretty_printl(output,"Virtual usecs",0,thread->data[0].virt_usec);
-    pretty_printl(output,"Virtual cycles",0,thread->data[0].virt_cyc);
-    if (!no_mpi_prof && is_mpied) {
-      pretty_printl(output,"MPI cycles",0,thread->papiex_mpiprof);
-      pretty_printl(output,"MPI Sync cycles",0,thread->papiex_mpisyncprof);
-      //if (!no_derived_stats) {
-      //  fprintf(output,"%% MPI cycles:\t%16.2f\n",(thread->data[0].real_cyc ? (float)((float)100*thread->papiex_mpiprof/(float)thread->data[0].real_cyc) : 0));
-      //}
-    }
-    if (!no_io_prof) {
-      pretty_printl(output,"IO cycles",0,thread->papiex_ioprof);
-      //if (!no_derived_stats) {
-      //  fprintf(output,"%% IO cycles:\t\t%16.2f\n",(thread->data[0].real_cyc ? (float)((float)100*thread->papiex_ioprof/(float)thread->data[0].real_cyc) : 0));
-      //}
-    }
-    if (!no_threadsync_prof) {
-      pretty_printl(output,"Thr Sync cycles",0,thread->papiex_threadsyncprof);
-    }
-    for (i=0;i<eventcnt;i++) {
-      pretty_printl(output, eventnames[i], 0, thread->data[0].counters[i]);
-    }
-
-    //for (j=1;j<thread->max_caliper_entries;j++)
-    //  if (thread->data[j].used) {
-    //    fprintf(output,"\n");
-    //    break;
-    //  }
-
-    for (j=1;j<thread->max_caliper_entries;j++) {
-      if (thread->data[j].used >0) {
-        fprintf(output, "\n");
-        if (strlen(thread->data[j].label) == 0)
-	  fprintf(output,"    Caliper %d\n",j);
-	else
-	  fprintf(output,"    %s\n",thread->data[j].label);
-        pretty_printl(output,"Executions",1, (long long)thread->data[j].used);
-        pretty_printl(output,"Real cycles",1, thread->data[j].real_cyc);
-#ifdef FULL_CALIPER_DATA
-        pretty_printl(output,"Real usecs",1, thread->data[j].real_usec);
-        pretty_printl(output,"Virtual usecs",1, thread->data[j].virt_usec);
-        pretty_printl(output,"Virtual cycles",1, thread->data[j].virt_cyc);
-        if (!no_mpi_prof && is_mpied) {
-          pretty_printl(output,"MPI cycles",0,thread->data[j].mpiprof);
-          pretty_printl(output,"MPI Sync cycles",0,thread->data[j].mpisyncprof);
-        }
-        if (!no_io_prof)
-          pretty_printl(output,"IO cycles",0,thread->data[j].ioprof);
-        if (!no_threadsync_prof)
-          pretty_printl(output,"Thr Sync cycles",0,thread->data[j].threadsyncprof);
+      
+      if (!no_io_prof)
+	fprintf(output,"%-16lld [%s] IO cycles\n",thread->data[j].ioprof, label);
+      
+      if (!no_threadsync_prof)
+	fprintf(output,"%-16lld [%s] Thr Sync cycles\n",thread->data[j].threadsyncprof, label);
 #endif
-        for (i=0;i<eventcnt;i++) {
-          pretty_print(output, eventnames[i],thread->data[j].counters[i], 1, 1, 1, NULL);
-	  /* Derived check here */
-          fprintf(output, " [%5.1f%%]\n", 100*(float)thread->data[j].counters[i]/(float)thread->data[0].counters[i]);
-        }
-      }
+      for (i=0;i<eventcnt;i++)
+	fprintf(output,"%-16lld [%s] %s\n",thread->data[j].counters[i], label, eventnames[i]);
     }
-  } /* not quiet end */
-
+  }
+    
   /* dump event descriptions */
+
   if (!quiet) {
     fprintf(output,"\n");
     fprintf(output,"Event descriptions:\n");
     for (i=0;i<eventcnt;i++)
       _papiex_dump_event_info(output,eventcodes[i],0);
-
-    fprintf(output, "%s", derived_events_desc);
   }
-#endif
-  return;
 }
-
 
 static void print_min_max_mean_cv(FILE *output, 
                                          papiex_perthread_data_t *min_data,
@@ -1486,14 +1534,6 @@ void papiex_stop(int point)
     LIBPAPIEX_WARN("Skipped read of counters as running time too low, and PAPI_MPX_ZERO_COUNTS_BUG is enabled\n. Try running without multiplexing to avoid this bug.");
   }
   
-#if 0
-  real_cyc = PAPI_get_real_cyc();
-  LIBPAPIEX_DEBUG("Calling PAPI_read..\n");
-  retval = PAPI_read(thread->eventset,counters);
-  if (retval != PAPI_OK) LIBPAPIEX_PAPI_WARN("PAPI_read",retval);
-  LIBPAPIEX_DEBUG("Returned from PAPI_read..\n");
-#endif
-
   if (point < 0) 
     {
       LIBPAPIEX_ERROR("Caliper point %d is out of range",point);
@@ -1589,13 +1629,6 @@ void papiex_accum(int point)
   else {
     LIBPAPIEX_WARN("Skipped read of counters as running time too low, and PAPI_MPX_ZERO_COUNTS_BUG is enabled\n. Try running without multiplexing to avoid this bug.");
   }
-#if 0
-  else {
-    real_cyc = PAPI_get_real_cyc();
-    retval = PAPI_read(thread->eventset,counters);
-    if (retval != PAPI_OK) LIBPAPIEX_PAPI_WARN("PAPI_read",retval);
-  }
-#endif
     
   /* Accum can't be called on point 0 */
   if (point <= 0) 
@@ -1997,14 +2030,6 @@ void papiex_start(int point, char *label)
     retval = PAPI_read_ts(thread->eventset,thread->data[point].tmp_counters,&thread->data[point].tmp_real_cyc);
     LIBPAPIEX_DEBUG("Returned from PAPI_read_ts\n");
     if (retval != PAPI_OK) LIBPAPIEX_PAPI_WARN("PAPI_read_ts",retval);
-#if 0
-    else {
-      thread->data[point].tmp_real_cyc = PAPI_get_real_cyc();
-      LIBPAPIEX_DEBUG("Reading counters (PAPI_read) to get initial counts\n");
-      retval = PAPI_read(thread->eventset,thread->data[point].tmp_counters);
-      if (retval != PAPI_OK) LIBPAPIEX_PAPI_WARN("PAPI_read",retval);
-    }
-#endif
   }
   else {
     LIBPAPIEX_DEBUG("Skipped read of counters as running time too low, and PAPI_MPX_ZERO_COUNTS_BUG is enabled\n. Try running without multiplexing to avoid this bug.");
@@ -2057,57 +2082,41 @@ static void papiex_thread_init_routine(void)
       return;
     }
 
-  if (multiplex)
-    {
-      retval = PAPI_assign_eventset_component(eventset, 0);
-      if (retval != PAPI_OK) {
-        LIBPAPIEX_PAPI_ERROR("PAPI_assign_eventset_component",retval);
-        return;
-      }
+  retval = PAPI_assign_eventset_component(eventset, 0);
+  if (retval != PAPI_OK) {
+    LIBPAPIEX_PAPI_ERROR("PAPI_assign_eventset_component",retval);
+    return;
+  }
 
-      //if (mpx_interval > 0) {
-      if (mpx_interval != PAPIEX_DEFAULT_MPX_HZ) {
-        LIBPAPIEX_DEBUG("PAPI multiplex interval set to: %d Hz\n", mpx_interval);
-        PAPI_multiplex_option_t popt;
-	memset(&popt,0,sizeof(popt));
-#ifdef PAPI_DEF_ITIMER_NS
-        popt.ns = (int)(1000000000 / mpx_interval);
-        retval = PAPI_set_opt(PAPI_DEF_ITIMER_NS, (PAPI_option_t *)&popt);
-#else
-        popt.us = (int)(1000000 / mpx_interval);
-        retval = PAPI_set_opt(PAPI_DEF_MPX_USEC, (PAPI_option_t *)&popt);
-#endif
-        if (retval != PAPI_OK)
-  	{
-  	  LIBPAPIEX_PAPI_ERROR("PAPI_set_opt (multiplex interval)",retval);
-  	  return;
-  	}
-      } // mpx_interval
-
-      LIBPAPIEX_DEBUG("Calling PAPI_set_multiplex on the eventset\n");
-      retval = PAPI_set_multiplex(eventset);
+  if (multiplex) {
+#if 0
+    if (mpx_interval != 0) {
+      LIBPAPIEX_DEBUG("Attempting to set PAPI multiplex interval set to %d Hz\n", mpx_interval);
+      PAPI_multiplex_option_t popt;
+      memset(&popt,0,sizeof(popt));
+      popt.us = (int)(1000000 / mpx_interval);
+      retval = PAPI_set_opt(PAPI_DEF_MPX_USEC, (PAPI_option_t *)&popt);
       if (retval != PAPI_OK)
-      	{
-	  LIBPAPIEX_PAPI_ERROR("PAPI_set_multiplex",retval);
+	{
+	  LIBPAPIEX_PAPI_ERROR("PAPI_set_opt (multiplex interval)",retval);
 	  return;
 	}
     }
+#endif
+    LIBPAPIEX_DEBUG("Calling PAPI_set_multiplex on the eventset\n");
+    retval = PAPI_set_multiplex(eventset);
+    if (retval != PAPI_OK)
+      {
+	LIBPAPIEX_PAPI_ERROR("PAPI_set_multiplex",retval);
+	return;
+      }
+  }
 
   if (eventcnt == 0) {
     eventcodes[0] = PAPI_TOT_CYC;
     eventnames[0] = strdup("PAPI_TOT_CYC");
-    if (PAPI_query_event(PAPI_FP_OPS) == PAPI_OK) {
-      eventcodes[1] = PAPI_FP_OPS;
-      eventnames[1] = strdup("PAPI_FP_OPS");
-    }
-    else if (PAPI_query_event(PAPI_FP_INS) == PAPI_OK) {
-      eventcodes[1] = PAPI_FP_INS;
-      eventnames[1] = strdup("PAPI_FP_INS");
-    }
-    else {
-      eventcodes[1] = PAPI_TOT_INS;
-      eventnames[1] = strdup("PAPI_TOT_INS");
-    }
+    eventcodes[1] = PAPI_TOT_INS;
+    eventnames[1] = strdup("PAPI_TOT_INS");
     eventcnt = 2;
   }
 
@@ -2202,6 +2211,7 @@ static void papiex_process_init_routine(void)
    */
   LIBPAPIEX_DEBUG("PROCESS INIT START\n");
 
+#if 0
   if (getenv("PAPIEX_PAPI_MPX_ZERO_COUNTS_BUG")) {
     papi_mpx_zero_counts_bug = 1;
     LIBPAPIEX_DEBUG("Will workaround PAPI's multiplex zero counts bug if needed\n");
@@ -2210,6 +2220,7 @@ static void papiex_process_init_routine(void)
     papi_broken_stop = 1;
     LIBPAPIEX_DEBUG("Broken PAPI_stop for multiplex+pthreads. Will work around it.\n");
   }
+#endif
 
   LIBPAPIEX_DEBUG("Initializing the PAPI library\n");
   version = PAPI_library_init(PAPI_VER_CURRENT);
@@ -2887,33 +2898,28 @@ static void print_process_stats(PAPI_all_thr_spec_t *process,
 static void print_thread_stats(FILE *output, papiex_perthread_data_t *thread,
                                unsigned long tid, int scope, float process_walltime_usec)
 {
-  if (output == NULL) return;
+  if (output == NULL) 
+    return;
 
-  if (!quiet) { 
-    print_executable_info(output);
-    if (is_mpied) fprintf(output,"%-30s: %d\n", "Mpi Rank", myrank);
-    if (_papiex_threaded) fprintf(output,"%-30s: %lu\n", "Thread id", tid);
-#ifdef HAVE_PAPI
-    fprintf(output, "%-30s: %s", "Start",ctime(&thread->stamp));
-    fprintf(output, "%-30s: %s", "Finish",ctime(&thread->finish));
-#endif
-    fprintf(output, "\n");
-  }
+  // Header 
 
-  if (!papiex_nextgen)
-    print_all_pretty_stats(output, thread, scope, process_walltime_usec);
+  print_executable_info(output);
+  if (is_mpied) 
+    fprintf(output,"%-30s: %d\n", "MPI Rank", myrank);
+  if (_papiex_threaded) 
+    fprintf(output,"%-30s: %lu\n", "Thread id", tid);
+  fprintf(output, "%-30s: %s", "Start",ctime(&thread->stamp));
+  fprintf(output, "%-30s: %s", "Finish",ctime(&thread->finish));
+  fprintf(output, "\n");
 
-  /* check if we should be printing rusage and memory stuff here */
-  if (rusage) {
+  // Data
+
+  if (rusage) 
     print_rusage_stats(output);
-  }
-  if (memory) {
+  if (memory) 
     _papiex_dump_memory_info(output);
-  }
-
+  print_proc_stats(output, thread);
   print_counters(output, thread);
-
-  return;
 }
 
 void init_process_globals(void) {
@@ -2945,7 +2951,7 @@ void init_library_globals(void) {
   is_mpied = 0; 
   quiet = 0;
   memory = 0;
-  mpx_interval= PAPIEX_DEFAULT_MPX_HZ; // in Hertz
+  mpx_interval = 0; // in Hertz
   multiplex = 0;
   no_derived_stats = 0;
   no_follow_fork = 0;
@@ -2968,8 +2974,6 @@ void init_library_globals(void) {
 
   /* To satisfy eventinfo.c used in libpapiex.so */
   tool = "papiex";
-  build_date = __DATE__;
-  build_time = __TIME__;
 
   /* output */
   base_output_path[0] = '\0';
@@ -3011,9 +3015,8 @@ void monitor_init_library(void) {
   if (tmp) 
     {
       do {
-	if (strcmp(tmp,"QUIET") == 0) {
-	  //quiet = 1;
-        }
+	if (strcmp(tmp,"QUIET") == 0) 
+	  quiet = 1;
 	else if (strcmp(tmp,"DEBUG") == 0)
 	  _papiex_debug++;
 	else if (strcmp(tmp,"NO_MPI_GATHER") == 0)
@@ -3058,12 +3061,10 @@ void monitor_init_library(void) {
 	  no_io_prof = 1;
 	else if (strcmp(tmp,"NO_THREADSYNC_PROF") == 0)
 	  no_threadsync_prof = 1;
-	else if (strcmp(tmp,"NO_SCIENTIFIC") == 0) {
+	else if (strcmp(tmp,"NO_SCIENTIFIC") == 0) 
           no_scientific = 1;
-        }
-	else if (strcmp(tmp,"NEXTGEN") == 0) {
+	else if (strcmp(tmp,"NEXTGEN") == 0) 
           papiex_nextgen = 1;
-        }
 	else if (strcmp(tmp,"CSV") == 0) {
           csv_output = 1;
           papiex_nextgen = 1; /* --csv does not work with --classic */

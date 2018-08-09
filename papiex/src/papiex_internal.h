@@ -33,23 +33,23 @@
 
 //#ifdef DEBUG
 #define PAPIEX_DEBUG_THREADID (unsigned long)((_papiex_threaded ? PAPI_thread_id() : 0))
-#define LIBPAPIEX_DEBUG(...) { if (_papiex_debug) { fprintf(stderr,"libpapiex debug: %lu,0x%lx,%s ",(unsigned long)getpid(),PAPIEX_DEBUG_THREADID,__func__); fprintf(stderr, __VA_ARGS__); } }
-#define PAPIEX_DEBUG(...) { extern char *tool; if (debug) { fprintf(stderr,"%s debug: %s ",tool,__func__); fprintf(stderr, __VA_ARGS__); } }
+#define LIBPAPIEX_DEBUG(...) { if (_papiex_debug) { fprintf(stderr,"libpapiex: debug %lu,0x%lx,%s ",(unsigned long)getpid(),PAPIEX_DEBUG_THREADID,__func__); fprintf(stderr, __VA_ARGS__); } }
+#define PAPIEX_DEBUG(...) { extern char *tool; if (debug) { fprintf(stderr,"%s: debug %s",tool,__func__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } }
+#define PAPIEX_PAPI_DEBUG(name,code) { PAPIEX_DEBUG("PAPI debug from %s, %d, %s", name, code, PAPI_strerror(code)); }
 //#else
 //#define LIBPAPIEX_DEBUG(...) 
 //#define PAPIEX_DEBUG(...) 
 //#endif
 
-#define LIBPAPIEX_WARN(...) { fprintf(stderr,"libpapiex warning: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
-#define LIBPAPIEX_ERROR(...) { fprintf(stderr,"libpapiex error: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); monitor_real_exit(1); }
+#define LIBPAPIEX_WARN(...) {  fprintf(stderr,"libpapiex: warning "); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+#define LIBPAPIEX_ERROR(...) { fprintf(stderr,"libpapiex: error "); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); monitor_real_exit(1); }
 #define LIBPAPIEX_PAPI_ERROR(name,code) { LIBPAPIEX_ERROR("PAPI error from %s, %d, %s", name, code, PAPI_strerror(code)); }
-#define LIBPAPIEX_PAPI_WARN(name,code) { LIBPAPIEX_WARN("PAPI error from %s, %d, %s", name, code, PAPI_strerror(code)); }
+#define LIBPAPIEX_PAPI_WARN(name,code) {  LIBPAPIEX_WARN("PAPI warning from %s, %d, %s", name, code, PAPI_strerror(code)); }
 
-#define PAPIEX_WARN(...) { extern char *tool; fprintf(stderr,"%s warning: ",tool); fprintf(stderr, __VA_ARGS__); }
-#define PAPIEX_ERROR(...) { extern char *tool; fprintf(stderr,"%s error: ",tool); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); exit(1); }
-#define PAPIEX_PAPI_ERROR(name,code) { PAPIEX_ERROR("PAPI error from %s, %d, %s\n", name, code, PAPI_strerror(code)); }
-#define PAPIEX_PAPI_WARN(name,code) { PAPIEX_WARN("PAPI error from %s, %d, %s\n", name, code, PAPI_strerror(code)); }
-#define PAPIEX_PAPI_DEBUG(name,code) { PAPIEX_DEBUG("PAPI error from %s, %d, %s\n", name, code, PAPI_strerror(code)); }
+#define PAPIEX_WARN(...) { extern char *tool;  fprintf(stderr,"%s: warning ",tool); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+#define PAPIEX_ERROR(...) { extern char *tool; fprintf(stderr,"%s: error ",tool); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); exit(1); }
+#define PAPIEX_PAPI_ERROR(name,code) { PAPIEX_ERROR("PAPI error from %s, %d, %s", name, code, PAPI_strerror(code)); }
+#define PAPIEX_PAPI_WARN(name,code) { PAPIEX_WARN("PAPI warning from %s, %d, %s", name, code, PAPI_strerror(code)); }
 
 #ifndef IO_PROFILE_LIB
 #define IO_PROFILE_LIB "libpapiexio.so"

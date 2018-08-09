@@ -1,0 +1,19 @@
+# Always enable user mode access to events
+#hooks:
+#  script: echo 1 > /proc/sys/kernel/perf_event_paranoid
+
+# Default GCC version
+image: gcc:5
+
+aliases:
+ quicktest:
+   script:
+     - make test
+ test_dbg:
+   script:
+     - DEBUG=1 make fulltest
+ test:
+   script:
+     - make fulltest
+
+ build: make -j2

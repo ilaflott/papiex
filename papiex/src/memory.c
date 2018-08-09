@@ -118,16 +118,16 @@ void _papiex_dump_memory_info(FILE *output)
    int retval = PAPI_get_dmem_info(&dmem_info);
 
   if (PAPI_OK == retval) {
-    pretty_printl(output, "[PROCESS] Mem. virtual peak KB" , 0, dmem_info.peak);
-    pretty_printl(output, "[PROCESS] Mem. resident peak KB", 0, dmem_info.high_water_mark);
-    pretty_printl(output, "[PROCESS] Mem. text KB", 0, dmem_info.text);
-    pretty_printl(output, "[PROCESS] Mem. library KB", 0, dmem_info.library);
-    pretty_printl(output, "[PROCESS] Mem. heap KB", 0, dmem_info.heap);
-    pretty_printl(output, "[PROCESS] Mem. stack KB", 0, dmem_info.stack);
-    pretty_printl(output, "[PROCESS] Mem. shared KB", 0, dmem_info.shared);
-    pretty_printl(output, "[PROCESS] Mem. locked KB", 0, dmem_info.locked);
+    // pretty_printl(output, "[PROCESS] Memory virtual max KB" , 0, dmem_info.peak);
+    pretty_printl(output, "[PROCESS] Memory resident max KB", 0, dmem_info.high_water_mark);
+    pretty_printl(output, "[PROCESS] Memory text (at exit) KB", 0, dmem_info.text);
+    pretty_printl(output, "[PROCESS] Memory library (at exit) KB", 0, dmem_info.library);
+    pretty_printl(output, "[PROCESS] Memory heap (at exit) KB", 0, dmem_info.heap);
+    pretty_printl(output, "[PROCESS] Memory stack (at exit) KB", 0, dmem_info.stack);
+    pretty_printl(output, "[PROCESS] Memory shared (at exit) KB", 0, dmem_info.shared);
+    pretty_printl(output, "[PROCESS] Memory locked (at exit) KB", 0, dmem_info.locked);
   }
   else {
-    fprintf(output, "PAPI_get_dmem_info failed with error code: %d", retval);
+    LIBPAPIEX_PAPI_ERROR("PAPI_get_dmem_info", retval);
   }
 }
