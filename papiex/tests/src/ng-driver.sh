@@ -24,7 +24,7 @@ tmpfile_stderr=""
 cmdline=""
 
 function do_testcase() {
-    debug "Running ($cmdline) 2> $tmpfile_stderr > $tmpfile_stdout)"
+    debug "Running: $cmdline 2> $tmpfile_stderr > $tmpfile_stdout"
     $cmdline 2> $tmpfile_stderr > $tmpfile_stdout
     stat=$?
     debug "Exit status was $stat"
@@ -193,7 +193,7 @@ for test in [0-9]*-*-ng; do
   comment=""
   outf=""
   get_tmp_files
-  debug "Running (. ./$test)"
+  debug "Running test case: $test"
   . ./$test
   if [ $? -eq 0 -a $error_code -eq 0 ]; then
     status="PASSED"
