@@ -2911,7 +2911,7 @@ static void print_thread_stats(FILE *output, papiex_perthread_data_t *thread,
     print_rusage_stats(output);
   if (memory) 
     _papiex_dump_memory_info(output);
-  if (proc_stat)
+  if (proc_stats)
     print_proc_stats(output, csv_output);
   print_counters(output, thread);
 }
