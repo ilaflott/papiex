@@ -11,7 +11,7 @@ pipelines:
         script: # Modify the commands below to build your repository.
           - make install
           - make fulltest
-#          - cd papiex-oss-install; source papiex-oss.sh
+          - source papiex-oss-install/papiex-oss.sh
 #          - papiex -h
 #          - papiex -i
 #          - papiex -l
