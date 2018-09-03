@@ -5,14 +5,14 @@ if [[ $called == $0 ]]; then
   echo "  source $0"
   exit 1
 fi
-#echo "Called: (${called})"
+echo "Called: (${called})"
 dirto=$(dirname "${called}")
-#echo "Dirname: (${dirto})"
+echo "Dirname: (${dirto})"
 
 case "${dirto}" in
-  /*)   #echo "Yes slash found"
+  /*)   echo "Yes slash found" ; 
 	;;
-  *)    #echo "No slash found"; 
+  *)    echo "No slash found" ; 
 	mycwd=`pwd`; dirto="${mypwd}/${dirto}" ;;
 esac
 
