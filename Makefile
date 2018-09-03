@@ -93,16 +93,14 @@ post-install:
 	@echo "	   - or -"
 	@echo "source $(DESTPREF)/papiex-oss.csh"
 	@echo
-	@echo "To test install:"
-	@echo "make test"
-	@echo "make fulltest"
+	@echo "To test: make [full/quick]test"
 	@echo =======================================================================
 	@echo
 
-.PHONY: test
-test:
+.PHONY: quicktest
+quicktest:
 	@bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make quicktest'
 
-.PHONY: fulltest
-fulltest:
+.PHONY: fulltest test
+fulltest test:
 	@bash -c 'source $(DESTPREF)/papiex-oss.sh; cd papiex; make test'

@@ -3,13 +3,13 @@
 #  script: echo 1 > /proc/sys/kernel/perf_event_paranoid
 
 # Default GCC version
-image: gcc:5
+image: gcc:6.1
 
 aliases:
  quicktest:
    script:
-     - make test
- test_dbg:
+     - make quicktest
+ debug:
    script:
      - DEBUG=1 make fulltest
  test:
