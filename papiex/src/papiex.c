@@ -1128,7 +1128,7 @@ static inline void print_all_pretty_stats(FILE* output, papiex_perthread_data_t 
 }
 
 
-static void print_proc_stats(FILE *output, int csv))
+static void print_proc_stats(FILE *output, int csv)
 {
   unsigned long long proc_minflt = 0;
   unsigned long long proc_majflt = 0;
