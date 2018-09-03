@@ -3,6 +3,8 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
+# 	  c = getopt_long (my_argc, my_argv, "+dhisVqnwf:Pp:o:e:lL:UKISGQ::E:M::arx", // M::m, 
+#
 image: gcc:6.1
 
 pipelines:
@@ -10,14 +12,17 @@ pipelines:
     - step:
         script: # Modify the commands below to build your repository.
           - make install
-          - make fulltest
           - source papiex-oss-install/papiex-oss.sh
           - papiex -h
+          - papiex -V
           - papiex -i
           - papiex -l
+          - papiex -L TASK-CLOCK
           - papiex -e TASK-CLOCK ps
-          - papiex -s -e TASK-CLOCK ps
-          - papiex -d -e TASK-CLOCK ps
+          - papiex -e MINOR-FAULTS -e MAJOR-FAULTS -e FAULTS -e CPU-CLOCK -e TASK-CLOCK -e CONTEXT-SWITCHES -e MIGRATIONS ps
+          - papiex -s -e CPU-CLOCK ps
+          - papiex -d -e CPU-CLOCK ps
           - papiex -x -e CPU-CLOCK ps 
           - papiex -r -e CPU-CLOCK ps
-          - papiex -e MINOR-FAULTS -e MAJOR-FAULTS -e FAULTS -e CPU-CLOCK -e TASK-CLOCK -e CONTEXT-SWITCHES -e MIGRATIONS ps
+          - papiex -P -e CPU-CLOCK ps
+          - make fulltest
