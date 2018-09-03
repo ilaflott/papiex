@@ -1,17 +1,13 @@
-called=${BASH_SOURCE[@]}
-echo "Dollar0: ($0)"
+called=${BASH_SOURCE[0]}
+#echo "Dollar0: ($0)"
 if [ "${called}" ] ; then
     if [[ ${called} == $0 ]]; then
 	echo "Error: *source* this script, do not execute it"
 	exit 1
     fi
-    echo "Called: (${called})"
-    if [ ${#called[@]} -eq 1 ]; then
+#    echo "Called: (${called})"
 	dirto=$(dirname ${called})
-    else
-	dirto=$(dirname ${called[0]})
-    fi
-    echo "Dirname $?: (${dirto})"
+#    echo "Dirname $?: (${dirto})"
 else
     dirto="`pwd`"
 fi
