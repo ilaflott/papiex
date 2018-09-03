@@ -1,12 +1,16 @@
-called="${BASH_SOURCE[@]}"
+called=${BASH_SOURCE[@]}
 echo "Dollar0: ($0)"
 if [ "${called}" ] ; then
-    if [[ $called == $0 ]]; then
+    if [[ ${called} == $0 ]]; then
 	echo "Error: *source* this script, do not execute it"
 	exit 1
     fi
     echo "Called: (${called})"
-    dirto=$(dirname "${called}")
+    if [ ${#called[@]} -eq 1 ]; then
+	dirto=$(dirname ${called})
+    else
+	dirto=$(dirname ${called[0]})
+    fi
     echo "Dirname $?: (${dirto})"
 else
     dirto="`pwd`"
@@ -20,10 +24,13 @@ case "${dirto}" in
 esac
 #echo "Looking for (${dirto})"
 
-test -d "${dirto}" || echo "Error: ${dirto} does not exist."
+test -d "${dirto}" 
+if [ $? -ne 0 ]; then
+    echo "Error: ${dirto} does not exist."
+else
 TOOLS_INSTALL_DIR="${dirto}"
-
 echo "Tools installed in ${TOOLS_INSTALL_DIR}. Modifying PATH/MANPATH/LD_LIBRARY_PATH env. vars."
 export PATH="$TOOLS_INSTALL_DIR/bin:$PATH"
 export MANPATH="$TOOLS_INSTALL_DIR/man:$TOOLS_INSTALL_DIR/share/man:$MANPATH"
 export LD_LIBRARY_PATH="$TOOLS_INSTALL_DIR/lib:$LD_LIBRARY_PATH"
+fi
