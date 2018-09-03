@@ -430,7 +430,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
     {
       while (1)
 	{
-	  c = getopt_long (my_argc, my_argv, "+dhisVqnwf:p:o:e:lL:UKISGQ::E:M::arx", // M::m, 
+	  c = getopt_long (my_argc, my_argv, "+dhisVqnwf:Pp:o:e:lL:UKISGQ::E:M::arx", // M::m, 
                              long_options, NULL);
 
 	  if (c == -1)
@@ -490,6 +490,7 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  //		  printf (" -a\t\tMonitor 'useful' events automatically (-m and -x are implicit).\n");
 		  printf (" -r\t\tReport getrusage() information.\n");
 		  printf (" -x\t\tReport memory usage information.\n");
+		  printf (" -P\t\tReport proc/pid/stat information.\n");
 		  printf (" --classic\tForce papiex to run in the old classic mode.\n");
 #ifdef PROFILING_SUPPORT
 		  printf (" --no-io-prof\tDisable I/O call profiling.\n");
@@ -518,11 +519,6 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
       /* do nothing; long option */
       break;
 		case 'q':
-		  if (strstr (option_string, "RUSAGE"))
-		    {
-		      PAPIEX_ERROR ("-r and -q are not compatible.");
-		      exit (1);
-		    }
 		  append_option (option_string, "QUIET");
 		  break;
 #if 0
@@ -542,20 +538,13 @@ static char * parse_args (int my_argc, char **my_argv, char **cmd, char ***cmd_a
 		  break;
 #endif
 		case 'r':
-		  if (strstr (option_string, "QUIET"))
-		    {
-		      PAPIEX_ERROR ("-r and -q are not compatible.");
-		      exit (1);
-		    }
 		  append_option (option_string, "RUSAGE");
 		  break;
 		case 'x':
-		  if (strstr (option_string, "QUIET"))
-		    {
-		      PAPIEX_ERROR ("-x and -q are not compatible.");
-		      exit (1);
-		    }
 		  append_option (option_string, "MEMORY");
+		  break;
+		case 'P':
+		  append_option (option_string, "PROC_STATS");
 		  break;
 		case 'n':
 		    if (strstr (option_string, "DIR") || strstr(option_string, "FILE") || strstr(option_string, "PREFIX") ||

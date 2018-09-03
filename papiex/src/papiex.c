@@ -73,6 +73,7 @@ static int file_prefix;
 static int domain;
 static int rusage;
 static int memory;
+static int proc_stats;
 static char derived_events_desc[PATH_MAX*4] = "\nDerived event descriptions:\n";
 static int quiet;
 static int no_follow_fork;
@@ -713,7 +714,7 @@ static inline long long max(long long a, long long b) {
   else return b;
 }
 
-static void print_executable_info(FILE *output) {
+static void print_executable_info(FILE *output, int csv) {
   char tool_version[128];
   char tool_build[128];
   sprintf(tool_version, "%s version", tool);
@@ -730,8 +731,15 @@ static void print_executable_info(FILE *output) {
 #ifdef HAVE_PAPI
   fprintf(output,"%-30s: %s\n", "Domain", stringify_domain(domain));
 #endif
+  pid_t pid = getpid();
+  fprintf(output,"%-30s: %d\n", "Process id", (int)pid);
+  fprintf(output,"%-30s: %d\n", "Session id", (int)getsid(pid));
   fprintf(output,"%-30s: %d\n", "Parent process id", (int)getppid());
-  fprintf(output,"%-30s: %d\n", "Process id", (int)getpid());
+  fprintf(output,"%-30s: %d\n", "Num. of threads", nthreads);
+  fprintf(output,"%-30s: %s", "Start",ctime(&proc_init_time.tv_sec));
+  fprintf(output,"%-30s: %s", "Finish",ctime(&proc_fini_time.tv_sec));
+  if (is_mpied) 
+    fprintf(output,"%-30s: %d\n", "MPI Rank", myrank);
   return;
 }
 
@@ -1120,7 +1128,7 @@ static inline void print_all_pretty_stats(FILE* output, papiex_perthread_data_t 
 }
 
 
-static void print_proc_stats(FILE *output, papiex_perthread_data_t *thread)
+static void print_proc_stats(FILE *output, int csv))
 {
   unsigned long long proc_minflt = 0;
   unsigned long long proc_majflt = 0;
@@ -2850,13 +2858,8 @@ static void print_process_stats(PAPI_all_thr_spec_t *process,
   LIBPAPIEX_DEBUG("\tNow printing statistics for rank %d\n", rank);
   // We don't print to stderr for MPI programs, only to a file
   if (output != NULL && !((output==stderr) && is_mpied)) {
-    if (!quiet) {
-      print_executable_info(output);
-      fprintf(output,"%-30s: %d\n", "Num. of threads", nthreads);
-      fprintf(output,"%-30s: %s", "Start",ctime(&proc_init_time.tv_sec));
-      fprintf(output,"%-30s: %s", "Finish",ctime(&proc_fini_time.tv_sec));
-    }
-    fprintf(output, "\n");
+    if (!quiet) 
+      print_executable_info(output,csv_output);
     print_all_pretty_stats(output, process_data_sums, PROC_SCOPE, 0);  // last arg is ignored
     print_min_max_mean_cv(output, min_data, max_data, mean_data, stddev_data);
     fprintf(output, "Cumulative Process Counts:\n");
@@ -2874,13 +2877,8 @@ static void print_process_stats(PAPI_all_thr_spec_t *process,
               proc_file, strerror(errno));
       monitor_real_exit(1);
     }
-    if (!quiet) {
-      print_executable_info(proc_out);
-      fprintf(proc_out,"%-30s: %d\n", "Num. of threads", nthreads);
-      fprintf(proc_out,"%-30s: %s", "Start",ctime(&proc_init_time.tv_sec));
-      fprintf(proc_out,"%-30s: %s", "Finish",ctime(&proc_fini_time.tv_sec));
-    }
-    fprintf(proc_out, "\n");
+    if (!quiet) 
+      print_executable_info(proc_out,csv_output);
     print_all_pretty_stats(proc_out, process_data_sums, PROC_SCOPE, 0); // last arg is ignored
     print_min_max_mean_cv(proc_out, min_data, max_data, mean_data, stddev_data);
     fprintf(proc_out, "Cumulative Process Counts:\n");
@@ -2903,22 +2901,18 @@ static void print_thread_stats(FILE *output, papiex_perthread_data_t *thread,
 
   // Header 
 
-  print_executable_info(output);
-  if (is_mpied) 
-    fprintf(output,"%-30s: %d\n", "MPI Rank", myrank);
+  print_executable_info(output,csv_output);
   if (_papiex_threaded) 
     fprintf(output,"%-30s: %lu\n", "Thread id", tid);
-  fprintf(output, "%-30s: %s", "Start",ctime(&thread->stamp));
-  fprintf(output, "%-30s: %s", "Finish",ctime(&thread->finish));
-  fprintf(output, "\n");
-
+  
   // Data
 
   if (rusage) 
     print_rusage_stats(output);
   if (memory) 
     _papiex_dump_memory_info(output);
-  print_proc_stats(output, thread);
+  if (proc_stat)
+    print_proc_stats(output, csv_output);
   print_counters(output, thread);
 }
 
@@ -2951,6 +2945,7 @@ void init_library_globals(void) {
   is_mpied = 0; 
   quiet = 0;
   memory = 0;
+  proc_stats = 0;
   mpx_interval = 0; // in Hertz
   multiplex = 0;
   no_derived_stats = 0;
@@ -3039,6 +3034,8 @@ void monitor_init_library(void) {
 	  rusage = 1;
 	else if (strcmp(tmp,"MEMORY") == 0)
 	  memory = 1;
+	else if (strcmp(tmp,"PROC_STATS") == 0)
+	  proc_stats = 1;
 	else if (strcmp(tmp,"NO_WRITE") == 0)
 	  no_write = 1;
 	else if (strcmp(tmp,"GCC_PROF") == 0)
