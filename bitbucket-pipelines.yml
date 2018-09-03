@@ -12,12 +12,12 @@ pipelines:
           - make install
           - make fulltest
           - source papiex-oss-install/papiex-oss.sh
-#          - papiex -h
-#          - papiex -i
-#          - papiex -l
-#          - papiex -e TASK-CLOCK ps
-#          - papiex -s -e TASK-CLOCK ps
-#          - papiex -d -e TASK-CLOCK ps
-#          - papiex -x -e CPU-CLOCK ps 
-#          - papiex -r -e CPU-CLOCK ps
-#          - papiex -e MINOR-FAULTS -e MAJOR-FAULTS -e FAULTS -e CPU-CLOCK -e TASK-CLOCK -e CONTEXT-SWITCHES -e MIGRATIONS ps
+          - papiex -h
+          - papiex -i
+          - papiex -l
+          - papiex -e TASK-CLOCK ps
+          - papiex -s -e TASK-CLOCK ps
+          - papiex -d -e TASK-CLOCK ps
+          - papiex -x -e CPU-CLOCK ps 
+          - papiex -r -e CPU-CLOCK ps
+          - papiex -e MINOR-FAULTS -e MAJOR-FAULTS -e FAULTS -e CPU-CLOCK -e TASK-CLOCK -e CONTEXT-SWITCHES -e MIGRATIONS ps
