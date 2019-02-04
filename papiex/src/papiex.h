@@ -3,7 +3,7 @@
 #ifndef PAPIEX_H
 #define PAPIEX_H
 
-#define PAPIEX_MAX_CALIPERS 1
+#define PAPIEX_MAX_CALIPERS 32
 
 #ifndef PAPIEX_MAX_IO_DESC
 #  define PAPIEX_MAX_IO_DESC 1024
