@@ -9,6 +9,10 @@ DEFINES=-DHAVE_MONITOR -DHAVE_PAPI
 SHELL = /bin/bash
 CC := gcc
 OCC := $(CC)
+DOCKER_RUN:=docker run
+DOCKER_BUILD:=docker build -f
+DOCKER_RUN_OPTS:=--rm -it
+#
 PREFIX := $(shell pwd)/papiex-epmt-install
 LIBMONITOR := $(DESTDIR)$(PREFIX)/lib/libmonitor.so
 LIBPFM := $(DESTDIR)$(PREFIX)/lib/libpfm.so
@@ -37,7 +41,7 @@ export PREFIX CC OCC SHELL DEFINES
 
 install: papiex
 
-dist: $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib
+$(RELEASE) dist: $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib
 	mv $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/bin.old
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
@@ -51,7 +55,7 @@ endif
 	rm -rf $(DESTDIR)$(PREFIX)/share
 	cd $(DESTDIR)$(PREFIX)/..; rm -f $(RELEASE); tar cvfz $(RELEASE) `basename $(PREFIX)`
 
-dist-test:
+test-$(RELEASE) dist-test:
 	cd papiex/src; tar cvfz ../../test-$(RELEASE) tests
 
 check: 
@@ -109,23 +113,23 @@ endif
 # ensure everything is cleaned up. Also, the formal release target should check
 # for any diffs against the repo and complain.
 
-$(RELEASE) test-$(RELEASE) docker-dist:
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
+docker-dist:
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
-	docker run --privileged --rm -it $(OS_TARGET)-papiex-test
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) --privileged $(OS_TARGET)-papiex-test
 
 docker-check:
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
-	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
 
 docker-clean:
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) clean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) clean 
 
 docker-distclean:
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean 
 
 
 
