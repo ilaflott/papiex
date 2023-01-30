@@ -1,4 +1,4 @@
-.TH "PAPI_attach" 3 "Mon Dec 18 2017" "Version 5.6.0.0" "PAPI" \" -*- nroff -*-
+.TH "PAPI_attach" 3 "Wed Jan 30 2019" "Version 5.6.1.0" "PAPI" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -21,7 +21,7 @@ int PAPI_attach( int EventSet, unsigned long tid );
 PAPI_attach is a wrapper function that calls PAPI_set_opt to allow PAPI to 
 monitor performance counts on a thread other than the one currently executing. 
 This is sometimes referred to as third party monitoring. 
-PAPI_attach connects the specified EventSet to the specifed thread;
+PAPI_attach connects the specified EventSet to the specified thread;
 PAPI_detach breaks that connection and restores the EventSet to the 
 original executing thread. 
 

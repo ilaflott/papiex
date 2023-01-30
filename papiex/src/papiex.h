@@ -3,14 +3,13 @@
 #ifndef PAPIEX_H
 #define PAPIEX_H
 
-#define PAPIEX_MAX_CALIPERS 32
-
 #ifndef PAPIEX_MAX_IO_DESC
 #  define PAPIEX_MAX_IO_DESC 1024
 #endif
 
 #define PAPIEX_DEFAULT_MPX_HZ  10 /* default multiplexing interval in Hertz */
 #define PAPIEX_MPX_MIN_SAMPLES 10 /* if we get less samples than this, we complain */
+#define PAPIEX_DEFAULT_OUTPUT_PREFIX "/tmp/"
 
 #if defined(NO_PAPIEX)
 #define PAPIEX_START

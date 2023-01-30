@@ -25,7 +25,8 @@ OVERFLOW  = fork_overflow exec_overflow child_overflow system_child_overflow \
 	overflow_index overflow_one_and_read overflow_allcounters
 PROFILE  = profile profile_force_software sprofile profile_twoevents \
 	byte_profile
-ATTACH	= multiattach multiattach2 zero_attach attach3 attach2 attach_target attach_cpu attach_validate
+ATTACH	= multiattach multiattach2 zero_attach attach3 attach2 attach_target \
+	attach_cpu attach_validate attach_cpu_validate attach_cpu_sys_validate
 P4_TEST	= p4_lst_ins
 EAR	= earprofile
 RANGE	= data_range
@@ -338,7 +339,7 @@ high-level2: high-level2.c $(TESTLIB) $(PAPILIB)
 	$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) high-level2.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o high-level2
 
 shlib: shlib.c $(TESTLIB) $(PAPILIB)
-		$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) shlib.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o shlib $(LDL)
+	$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) shlib.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o shlib $(LDL)
 
 exeinfo: exeinfo.c $(TESTLIB) $(PAPILIB)
 	-$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) exeinfo.c $(TESTLIB) $(PAPILIB) $(LDFLAGS) -o exeinfo 
@@ -372,6 +373,12 @@ attach2: attach2.c attach_target $(TESTLIB) $(PAPILIB)
 
 attach_cpu: attach_cpu.c $(TESTLIB) $(DOLOOPS) $(PAPILIB)
 	-$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) attach_cpu.c $(TESTLIB) $(DOLOOPS) $(PAPILIB) $(LDFLAGS) -o attach_cpu 
+
+attach_cpu_validate: attach_cpu_validate.c $(TESTLIB) $(DOLOOPS) $(PAPILIB)
+	-$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) attach_cpu_validate.c $(TESTLIB) $(DOLOOPS) $(PAPILIB) $(LDFLAGS) -o attach_cpu_validate
+
+attach_cpu_sys_validate: attach_cpu_sys_validate.c $(TESTLIB) $(DOLOOPS) $(PAPILIB)
+	-$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) attach_cpu_sys_validate.c $(TESTLIB) $(DOLOOPS) $(PAPILIB) $(LDFLAGS) -o attach_cpu_sys_validate
 
 attach_validate: attach_validate.c attach_target $(TESTLIB) $(TESTINS) $(PAPILIB)
 	-$(CC) $(INCLUDE) $(CFLAGS) $(TOPTFLAGS) attach_validate.c $(TESTLIB) $(TESTINS) $(PAPILIB) $(LDFLAGS) -o attach_validate
@@ -433,4 +440,4 @@ clean:
 	rm -f *.o *.stderr *.stdout core *~ $(ALL) unregister_pthreads
 
 distclean clobber: clean
-	  rm -f Makefile.target
+	rm -f Makefile.target

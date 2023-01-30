@@ -1,85 +1,73 @@
-PapiEx - PAPI Execute
+papiex - PAPI Execute
 =====================
 
-PapiEx provides a command-line interface to PAPI for *shared executables*.
+Building with PAPI
+------------------
+If you want to build with PAPI, please uncomment the -DHAVE_PAPI in the definition of the DEFINES variable in the Makefile. Please ensure you maintain the -DHAVE_MONITOR in that line as well.
 
+How to Build/Test - Native
+--------------------------
 
-Dependencies
-------------
-* PAPI (> 4.0) : http://icl.cs.utk.edu/papi
-* Libmonitor   : http://libmonitor.googlecode.com
+This distribution honors the PREFIX and DESTDIR variables standardized by GNU/FSF software. 
 
-Both these dependencies are included in this papiex git repository. 
-You also have the option build papiex against a pre-installed version of
-PAPI or libmonitor.
+$ make PREFIX=/path/to/install/dir install
 
-The only requirement is the availability of gcc and standard *nix utilities
-such as `make` and `autoconf`. Your system needs to support shared libraries.
-Papiex has been well tested on many versions of Linux/x86_64. 
+To verify things are working:
 
+$ make PREFIX=/path/to/install/dir check
 
-Getting the sources
--------------------
-You can get papiex and it dependencies (PAPI and libmonitor) at:
+The output of the above test will move the data into ./sample-data.build
 
-    $ git clone https://bitbucket.org/minimalmetrics/papiex-oss.git
+How to Build/Test - Docker
+--------------------------
 
+The default target is OS_TARGET=centos-7. If you want something else, then specify it on the make line. 
 
-Build PapiEx
-------------
+$ make docker-dist
+$ make docker-test-dist
 
-The easiest way to build and use papiex is to use the bundled
-PAPI and libmonitor. The `PREFIX` argument is optional. If
-unset, the tools will be installed in a sub-directory under the
-working directory.
+See Makefile and Dockerfiles directory for other platforms, note only Centos-7 is maintained, so you'll need to port the other Dockerfiles. 
 
-      $ make install PREFIX=/path/to/where/you/want/to/install/papiex 
+Output of make check
+--------------------
 
-      $ make PREFIX=... test
+# make PREFIX=/usr/papi check  
+cd papiex; make PREFIX=/usr/papi LIBPAPIEX=/usr/papi/lib/libpapiex.so check
+make[1]: Entering directory '/Users/phil/Work/papiex-oss/papiex'
+make -C /Users/phil/Work/papiex-oss/papiex/x86_64-Linux -f /Users/phil/Work/papiex-oss/papiex/src/Makefile check
+make[2]: Entering directory '/Users/phil/Work/papiex-oss/papiex/x86_64-Linux'
+cp -Rp /Users/phil/Work/papiex-oss/papiex/src/tests/* /Users/phil/Work/papiex-oss/papiex/x86_64-Linux/tests
+cd tests; ./test.sh
+/usr/papi/bin/monitor-run -i /usr/papi/lib/libpapiex.so
+Testing papi with PERF_COUNT_SW_CPU_CLOCK...
+/usr/papi/bin/papi_command_line PERF_COUNT_SW_CPU_CLOCK: PASS(0)
+0 errors.
 
-      $ make PREFIX=... fulltest
-
-
-To use an exisiting PAPI installation, and not use the bundled PAPI:
-
-      $ make PAPI_INC_PATH=/path/to/papi/install/include \
-             PAPI_LIB_PATH=/path/to/papi/install/lib
-
-      - or -
-
-      $ make PAPI_PREFIX=/path/to/papi/install
-
-Similarly you can use `MONITOR_PREFIX` or `MONITOR_INC_PATH` and
-`MONITOR_LIB_PATH` to use an existing libmonitor. Please note 
-papiex uses a version of monitor that comes out of the SciDAC project.
-
-Build time arguments that are honored:
-
- * `MONITOR_PREFIX` or `MONITOR_INC_PATH` and `MONITOR_LIB_PATH`
- * `PAPI_PREFIX` or `PAPI_INC_PATH` and `PAPI_LIB_PATH`
- * `PROFILING_SUPPORT=1` to count I/O, MPI and thread-synchronization cycles
- * `USE_MPI=1` to build MPI tests
-	
-Note, PapiEx works for MPI programs even if `USE_MPI` is unset. However,
-adding USE_MPI builds tests for MPI. If `PROFILING_SUPPORT=1` is set
-then time spent in MPI is also reported. 
-
-To use papiex, see [README.md](README.md)
-
-
-Platforms Tested
-----------------
-
- * Haswell (Xeon(R) CPU E5-2698 v3), gcc 4.9.3
- * POWER8E, gcc 4.8.5
-
-
-Troubleshooting
----------------
-
-If the PAPI or monitor libraries are not installed in the standard run time 
-linker search path then you had better set the environment variable
-`LD_LIBRARY_PATH` to point to the correct places. 
-
-    $ setenv LD_LIBRARY_PATH /usr/local/lib:/opt/local/lib (for csh)
-    $ export LD_LIBRARY_PATH /usr/local/lib:/opt/local/lib (for sh/bash/ksh)
+Testing tagged runs...
+sleep 1: PASS(0)
+ps -fade: PASS(0)
+host google.com: PASS(0)
+echo : | tr ':' '\n': PASS(0)
+tcsh -f module-test.csh: PASS(0)
+bash --noprofile -c 'sleep 1': PASS(0)
+tcsh -f -c 'sleep 1': PASS(0)
+csh -f -c 'sleep 1': PASS(0)
+tcsh -f evilcsh.csh: PASS(0)
+csh -f evilcsh.csh: PASS(0)
+bash --noprofile sieve.sh 100: PASS(0)
+tcsh -f sieve.csh 100: PASS(0)
+csh -f sieve.csh 100: PASS(0)
+python sieve.py: PASS(0)
+perl sieve.pl: PASS(0)
+gcc -Wall unit1.c -o unit1a: PASS(0)
+gcc -pthread dotprod_mutex.c -o dotprod_mutex: PASS(0)
+g++ -fopenmp md_openmp.cpp -o md_openmp: PASS(0)
+gfortran -fopenmp fft_openmp.f90 -o fft_openmp: PASS(0)
+./unit1a: PASS(0)
+./dotprod_mutex: PASS(0)
+./md_openmp: PASS(0)
+./fft_openmp: PASS(0)
+0 errors.
+make[2]: Leaving directory '/Users/phil/Work/papiex-oss/papiex/x86_64-Linux'
+make[1]: Leaving directory '/Users/phil/Work/papiex-oss/papiex'
+ln -s /usr/papi/tmp ./sample-data.build

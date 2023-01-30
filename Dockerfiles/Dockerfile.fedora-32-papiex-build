@@ -1,0 +1,11 @@
+FROM fedora:32
+
+RUN yum update -y
+# Needed for compile
+RUN yum install -y gcc make file diffutils findutils
+# Needed for test
+RUN yum install -y gcc-c++ gcc-gfortran perl python3
+RUN yum install -y csh tcsh bind-utils openssh-clients openssh-server
+
+
+

@@ -98,7 +98,7 @@ monitor_signal_array[MONITOR_NSIG];
 /*  Signals that monitor treats as totally hands-off.
  */
 static int monitor_signal_avoid_list[] = {
-    SIGKILL, SIGSTOP, -1
+  SIGKILL, SIGSTOP, SIGURG, -1
 };
 
 /*  Signals whose default actions do not terminate the process.
@@ -248,7 +248,7 @@ monitor_signal_handler(int sig, siginfo_t *info, void *context)
 	    return;
 	}
 
-	monitor_end_process_fcn(MONITOR_EXIT_SIGNAL);
+	monitor_end_process_fcn(MONITOR_EXIT_SIGNAL, 0);
 #ifdef MONITOR_DYNAMIC
 	monitor_end_library_fcn();
 #endif

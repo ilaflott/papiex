@@ -1,43 +1,43 @@
 # $Id: Rules.gmake,v 1.22 2007/02/15 18:09:52 mucci Exp $
 
-SHELL=/bin/sh
+SHELL=/bin/bash
 ARCH=$(shell uname -m)
 OS=$(shell uname -s)
 
 # The user can change these via the makeline
-PREFIX=/usr/local
+PREFIX?=/usr/local
 EXECPREFIX=$(PREFIX)
 BINDIR=$(EXECPREFIX)/bin
-DOCDIR=$(PREFIX)/share/doc/$(LIBNAME)
+SHAREDIR=$(PREFIX)/share/$(LIBNAME)
+DOCDIR=$(PREFIX)/share/$(LIBNAME)/doc
 MANDIR=$(PREFIX)/share/man
 LIBDIR=$(PREFIX)/lib
 INCDIR=$(PREFIX)/include
-export DESTDIR PREFIX EXECPREFIX BINDIR DOCDIR MANDIR LIBDIR INCDIR
 
-SONAME=lib$(LIBNAME).so.$(INTERFACE).$(REVISION).$(AGE)
+SONAME=lib$(LIBNAME).so.$(VERSION)
 SOVERSION=lib$(LIBNAME).so.$(INTERFACE)
 SOBASE=lib$(LIBNAME).so
-export LIBNAME SONAME SOVERSION SOBASE INTERFACE REVISION AGE
 
 ifeq (${OS},Linux)
-CC	?= gcc
-F77	?= gfortran
-AR	?= ar
-RANLIB	?= ranlib
-OCC	?= $(CC)
-CFLAGS	?= -O2 -g -Wall
-OCFLAGS += -O -g -Wall
-FFLAGS	?= -O -g -Wall
+CC	= gcc
+OCC	= $(CC)
+MPICC	= mpicc
+F77	= gfortran
 CC_PTHR	= $(CC) -pthread
 CC_OMP	= $(CC) -fopenmp
 F77_OMP	= $(F77) -fopenmp
-MPICC	?= mpicc
-JAVAC	?= gcj -C
-SHRCFLAGS ?= -fPIC -DPIC
-SHRLDFLAGS ?= -shared
+AR	= ar
+RANLIB	= ranlib
+STRIP 	= strip
+CFLAGS	= -O2 -g -Wall
+OCFLAGS = -O -g -Wall
+FFLAGS	= -O -g -Wall
+SHRCFLAGS = -fPIC -DPIC
+SHRLDFLAGS = -shared
+DEFINES += -D_REENTRANT -DDEBUG -D_GNU_SOURCE
 endif
 
-DEFINES+=-D_REENTRANT -DDEBUG -D_GNU_SOURCE -I$(root-dir)/src
+# -I$(root-dir)/src
 root-dir?=$(PWD)
 build-dir?=$(PWD)/$(ARCH)-$(OS)
 VPATH=$(root-dir)/src:$(root-dir)/tests/src:$(root-dir)/man
@@ -45,67 +45,21 @@ VPATH=$(root-dir)/src:$(root-dir)/tests/src:$(root-dir)/man
 HTMLMANPAGES1 ?= 
 HTMLMANPAGES3 ?= 
 
-export VPATH root-dir build-dir SHELL CC OCC F77 AR RANLIB CFLAGS OCFLAGS FFLAGS CC_PTHR CC_OMP F77_OMP MPICC JAVAC SHRLDFLAGS SHRCFLAGS LIBS DEFINES
-
 .PHONY: all
-all: show-config $(build-dir)
+all: $(build-dir) 
+	$(MAKE) -C $(build-dir) -f $(root-dir)/src/Makefile 
 
-.PHONY: show-config
-show-config:
-	@echo "$(LIBNAME) version:	$(VERSION)"
-	@echo ""
-	@echo "*** Build Parameters ***"
-	@echo "Architecture:	ARCH=$(ARCH)"
-	@echo "OS:		OS=$(OS)"
-	@echo "User defines: 	DEFINES=$(DEFINES)"
-	@echo "C Compiler:	CC=$(CC)"
-	@echo "F77 Compiler:	F77=$(F77)"
-	@echo "OptC Compiler: 	OCC=$(OCC)"
-	@echo "Linker:		LD=$(LD)"
-	@echo "AR:		AR=$(AR)"
-	@echo "Ranlibr:	RANLIB=$(RANLIB)"
-	@echo "C (Pthreads): 	CC_PTHR=$(CC_PTHR)"
-	@echo "C (OpenMP):	CC_OMP=$(CC_OMP)"
-	@echo "F77 (OpenMP):	F77_OMP=$(F77_OMP)"
-	@echo "C Flags:   	CFLAGS=$(CFLAGS)"
-	@echo "OptC Flags:   	CFLAGS=$(OCFLAGS)"
-	@echo "F77 Flags:   	FFLAGS=$(FFLAGS)"
-	@echo "C (shared obj):	SHRCFLAGS=$(SHRCFLAGS)"
-	@echo "C (shared lib):	SHRLDFLAGS=$(SHRLDFLAGS)"
-	@echo "Extra libs:	LIBS=$(LIBS)"
-	@echo "VPATH:		VPATH=$(VPATH)"
-	@echo ""
-	@echo "Binutils"
-	@echo "Prefix:		BINUTILS_PREFIX=$(BINUTILS_PREFIX)"
-	@echo "Includes:	BINUTILS_INC_PATH=$(BINUTILS_INC_PATH)"
-	@echo "Libraries:	BINUTILS_LIB_PATH=$(BINUTILS_LIB_PATH)"
-	@echo "Libbfd:		LIBBFD_STATIC=$(LIBBFD_STATIC)"
-	@echo "Libiberty:	LIBIBERTY_STATIC=$(LIBIBERTY_STATIC)"
-	@echo ""
-	@echo "*** Installation Parameters ***"
-	@echo "Destdir:    	DESTDIR=$(DESTDIR)"
-	@echo "Prefix:    	PREFIX=$(PREFIX)"
-	@echo "Execprefix:	EXECPREFIX=$(EXECPREFIX)"
-	@echo "Binaries:  	BINDIR=$(BINDIR)"
-	@echo "Includes:  	INCDIR=$(INCDIR)"
-	@echo "Libraries: 	LIBDIR=$(LIBDIR)"
-	@echo "Data dir: 	DATADIR=$(DATADIR)"
-	@echo "Man pages: 	MANDIR=$(MANDIR)"
-	@echo "Doc dir: 	DOCDIR=$(DOCDIR)"
-	@echo ""
-
-.PHONY: all
-all: $(build-dir) docs
-
-.PHONY: $(build-dir)
 $(build-dir): 
-	-mkdir -p $(build-dir)/tests
-	$(MAKE) -C $(build-dir) -f $(root-dir)/src/Makefile
-	$(MAKE) -C $(build-dir)/tests -f $(root-dir)/tests/src/Makefile
+	mkdir -p $(build-dir)/tests
+
+.PHONY: check
+check: 
+	$(MAKE) -C $(build-dir) -f $(root-dir)/src/Makefile check
 
 .PHONY: clean
 clean:
-	@rm -rf $(build-dir) man/*-man.html
+	rm -rf $(build-dir) man/*-man.html
+	find . -name "*~" -exec rm -f {} \;
 
 .PHONY: clobber distclean
 distclean clobber: clean
@@ -117,12 +71,12 @@ distclean clobber: clean
 .PHONY: dist
 dist: $(LIBNAME)-$(VERSION).tar.gz
 
-.PHONY: test tests fulltest
-test tests fulltest:
+.PHONY: test fulltest
+test fulltest:
 	cd $(build-dir)/tests; ./ng-driver
 
 .PHONY: test_dbg tests_dbg fulltest_dbg
-test_dbg tests_dbg fulltest_dbg:
+test_dbg fulltest_dbg:
 	cd $(build-dir)/tests; DEBUG=1 ./ng-driver
 
 .PHONY: quicktest
@@ -135,20 +89,21 @@ install-dirs:
 	install -d $(DESTDIR)$(LIBDIR)
 	install -d $(DESTDIR)$(INCDIR)
 	install -d $(DESTDIR)$(DOCDIR)
+	install -d $(DESTDIR)$(SHAREDIR)
 	install -d $(DESTDIR)$(MANDIR)/man3
 	install -d $(DESTDIR)$(MANDIR)/man1
 
 .PHONY: install
-install: all install-dirs install-native
-	install $(build-dir)/$(LIBNAME)-config $(DESTDIR)$(BINDIR)
+install: all install-dirs #install-native
+#	install $(build-dir)/$(LIBNAME)-config $(DESTDIR)$(BINDIR)
 	install $(build-dir)/$(SONAME) $(DESTDIR)$(LIBDIR)
 	cd $(DESTDIR)$(LIBDIR); ln -fs $(SONAME) $(SOVERSION)
 	cd $(DESTDIR)$(LIBDIR); ln -fs $(SOVERSION) $(SOBASE)
 	install -m 0644 src/$(LIBNAME).h $(DESTDIR)$(INCDIR)
-	cd man; install -m 0644 $(MANPAGES3) $(DESTDIR)$(MANDIR)/man3; 
-	cd man; install -m 0644 $(MANPAGES1) $(DESTDIR)$(MANDIR)/man1; 
-	cd man; install -m 0644 $(HTMLMANPAGES1) $(HTMLMANPAGES3) $(DESTDIR)$(DOCDIR)
-	install -m 0644 $(LIBNAME).html BUGS.md $(DESTDIR)$(DOCDIR)
+#	cd man; install -m 0644 $(MANPAGES3) $(DESTDIR)$(MANDIR)/man3; 
+#	cd man; install -m 0644 $(MANPAGES1) $(DESTDIR)$(MANDIR)/man1; 
+#	cd man; install -m 0644 $(HTMLMANPAGES1) $(HTMLMANPAGES3) $(DESTDIR)$(DOCDIR)
+#	install -m 0644 $(LIBNAME).html BUGS.md $(DESTDIR)$(DOCDIR)
 
 .PHONY: uninstall
 uninstall: uninstall-native
@@ -196,3 +151,50 @@ $(LIBNAME)-$(VERSION).tar.gz: docs
 	cp -Rp . /tmp/$(LIBNAME)
 	cd /tmp; tar -c -v -z --exclude "CVS*" --exclude ".svn" --exclude "www" -f $(LIBNAME)-$(VERSION).tar.gz $(LIBNAME)
 	mv /tmp/$(LIBNAME)-$(VERSION).tar.gz .
+
+.PHONY: show-config
+show-config:
+	@echo "$(LIBNAME) version:	$(VERSION)"
+	@echo ""
+	@echo "*** Build Parameters ***"
+	@echo "Architecture:	ARCH=$(ARCH)"
+	@echo "OS:		OS=$(OS)"
+	@echo "Defines: 	DEFINES=$(DEFINES)"
+	@echo "Includes: 	INCLUDES=$(INCLUDES)"
+	@echo "C Compiler:	CC=$(CC)"
+	@echo "F77 Compiler:	F77=$(F77)"
+	@echo "OptC Compiler: 	OCC=$(OCC)"
+	@echo "Linker:		LD=$(LD)"
+	@echo "AR:		AR=$(AR)"
+	@echo "Ranlibr:	RANLIB=$(RANLIB)"
+	@echo "C (Pthreads): 	CC_PTHR=$(CC_PTHR)"
+	@echo "C (OpenMP):	CC_OMP=$(CC_OMP)"
+	@echo "F77 (OpenMP):	F77_OMP=$(F77_OMP)"
+	@echo "C Flags:   	CFLAGS=$(CFLAGS)"
+	@echo "OptC Flags:   	CFLAGS=$(OCFLAGS)"
+	@echo "F77 Flags:   	FFLAGS=$(FFLAGS)"
+	@echo "C (shared obj):	SHRCFLAGS=$(SHRCFLAGS)"
+	@echo "C (shared lib):	SHRLDFLAGS=$(SHRLDFLAGS)"
+	@echo "Extra libs:	LIBS=$(LIBS)"
+	@echo "VPATH:		VPATH=$(VPATH)"
+	@echo ""
+#	@echo "Binutils"
+#	@echo "Prefix:		BINUTILS_PREFIX=$(BINUTILS_PREFIX)"
+#	@echo "Includes:	BINUTILS_INC_PATH=$(BINUTILS_INC_PATH)"
+#	@echo "Libraries:	BINUTILS_LIB_PATH=$(BINUTILS_LIB_PATH)"
+#	@echo "Libbfd:		LIBBFD_STATIC=$(LIBBFD_STATIC)"
+#	@echo "Libiberty:	LIBIBERTY_STATIC=$(LIBIBERTY_STATIC)"
+#	@echo ""
+	@echo "*** Installation Parameters ***"
+	@echo "Destdir:    	DESTDIR=$(DESTDIR)"
+	@echo "Prefix:    	PREFIX=$(PREFIX)"
+	@echo "Execprefix:	EXECPREFIX=$(EXECPREFIX)"
+	@echo "Binaries:  	BINDIR=$(BINDIR)"
+	@echo "Includes:  	INCDIR=$(INCDIR)"
+	@echo "Libraries: 	LIBDIR=$(LIBDIR)"
+	@echo "Data dir: 	DATADIR=$(DATADIR)"
+	@echo "Man pages: 	MANDIR=$(MANDIR)"
+	@echo "Doc dir: 	DOCDIR=$(DOCDIR)"
+	@echo "Share dir: 	SHAREDIR=$(SHAREDIR)"
+	@echo ""
+

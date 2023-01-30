@@ -674,7 +674,50 @@ set_up_mmap( pe_control_t *ctl, int evt_idx)
 	return PAPI_OK;
 }
 
+#define CONFIG_PAPIEX_WORKAROUND 1
+#ifdef CONFIG_PAPIEX_WORKAROUND
+#include <sys/resource.h>
+#define CSH_BAD_FD_OFFSET 256
+static inline int endswith(const char* withwhat, const char* what)
+{
+  int l1 = strlen(withwhat);
+  int l2 = strlen(what);
+  if (l1 > l2)
+    return 0;
 
+  return strcmp(withwhat, what + (l2 - l1)) == 0;
+}
+
+static int find_free_fd()
+{
+  int base = CSH_BAD_FD_OFFSET;
+  struct rlimit rl;
+  static int nofile = -1; 
+  int i;
+
+  if (nofile == -1) {
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
+      SUBDBG("NOFILE %lu,%lu\n",(unsigned long)rl.rlim_cur,(unsigned long)rl.rlim_max);
+      nofile = rl.rlim_cur;
+    } else {
+      nofile = 0;
+      return -1;
+    }
+  }
+  
+  if (base >= nofile)
+    return -1;
+
+  for (i=nofile-1;i>base;i--) 
+    if (fcntl(i, F_GETFD) == -1) 
+      return i;
+  return -1;
+}
+#define BAD_FD_CHECK(fd)	(fd < CSH_BAD_FD_OFFSET)
+#define CSH_BAD_FD_CHECK(fd)	(BAD_FD_CHECK(fd) && endswith("csh",_papi_hwi_system_info.exe_info.address_info.name))
+#else
+#define BAD_FD_CHECK(fd)	(0)
+#endif
 
 /* Open all events in the control state */
 static int
@@ -684,11 +727,23 @@ open_pe_events( pe_context_t *ctx, pe_control_t *ctl )
 	int i, ret = PAPI_OK;
 	long pid;
 
-	if (ctl->granularity==PAPI_GRN_SYS) {
-		pid = -1;
+
+	/* Set the pid setting */
+	/* If attached, this is the pid of process we are attached to. */
+	/* If GRN_THRD then it is 0 meaning current process only */
+	/* If GRN_SYS then it is -1 meaning all procs on this CPU */
+	/* Note if GRN_SYS then CPU must be specified, not -1 */
+
+	if (ctl->attached) {
+		pid = ctl->tid;
 	}
 	else {
-		pid = ctl->tid;
+		if (ctl->granularity==PAPI_GRN_SYS) {
+			pid = -1;
+		}
+		else {
+			pid = 0;
+		}
 	}
 
 	for( i = 0; i < ctl->num_events; i++ ) {
@@ -747,6 +802,8 @@ open_pe_events( pe_context_t *ctx, pe_control_t *ctl )
 				ctl->events[i].group_leader_fd,
 				0 /* flags */ );
 
+		SUBDBG("PERF_EVENT_OPEN %d %d %s %d %d\n",mygettid(),ctl->tid,_papi_hwi_system_info.exe_info.address_info.name,ctl->num_events,ctl->events[i].event_fd);
+		
 		/* Try to match Linux errors to PAPI errors */
 		if ( ctl->events[i].event_fd == -1 ) {
 			SUBDBG("sys_perf_event_open returned error "
@@ -757,6 +814,16 @@ open_pe_events( pe_context_t *ctx, pe_control_t *ctl )
 			goto open_pe_cleanup;
 		}
 
+#ifdef CONFIG_PAPIEX_WORKAROUND
+		{
+		  int nfd = find_free_fd();
+		  int dupfd = dup2(ctl->events[i].event_fd,nfd);
+		  SUBDBG("%d = dup2(%d,%d)\n",dupfd,ctl->events[i].event_fd,nfd);
+		  close(ctl->events[i].event_fd);
+		  ctl->events[i].event_fd = dupfd;
+		  SUBDBG("event(%d): fd %d\n",i,ctl->events[i].event_fd);
+		}
+#endif
 		SUBDBG ("sys_perf_event_open: tid: %ld, cpu_num: %d,"
 			" group_leader/fd: %d, event_fd: %d,"
 			" read_format: %"PRIu64"\n",
@@ -857,7 +924,8 @@ open_pe_cleanup:
 	while ( i > 0 ) {
 		i--;
 		if (ctl->events[i].event_fd>=0) {
-			close( ctl->events[i].event_fd );
+			close(ctl->events[i].event_fd);
+			ctl->events[i].event_fd = -1;
 			ctl->events[i].event_opened=0;
 		}
 	}
@@ -884,6 +952,16 @@ close_event( pe_event_info_t *event )
 			munmap_error=1;
 		}
 	}
+
+	SUBDBG("%d CLOSE %d\n",mygettid(),event->event_fd);
+	if (BAD_FD_CHECK(event->event_fd)) {
+	  event->event_fd=-1;
+	  event->group_leader_fd=-1;
+	  event->event_opened=0;
+	  PAPIERROR("BAD CLOSE FD %d",event->event_fd);
+	  return PAPI_EBUG;
+	}
+
 	if ( close( event->event_fd ) ) {
 		PAPIERROR( "close of fd = %d returned error: %s",
 			event->event_fd, strerror( errno ) );
@@ -912,6 +990,7 @@ close_pe_events( pe_context_t *ctx, pe_control_t *ctl )
 		SUBDBG("Closing without stopping first\n");
 	}
 
+	SUBDBG("%d vs %d close_pe_events\n",mygettid(),ctl->tid);
 	/* Close child events first */
 	/* Is that necessary? -- vmw */
 	for( i=0; i<ctl->num_events; i++ ) {
@@ -1084,14 +1163,18 @@ static int
 _pe_rdpmc_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
 		long long **events, int flags )
 {
+	long long papi_pe_buffer[READ_BUFFER_SIZE];
+
 	SUBDBG("ENTER: ctx: %p, ctl: %p, events: %p, flags: %#x\n",
 		ctx, ctl, events, flags);
 
 	( void ) flags;			/*unused */
 	( void ) ctx;			/*unused */
+	( void ) papi_pe_buffer;	/*unused */
 	int i;
 	pe_control_t *pe_ctl = ( pe_control_t *) ctl;
-	unsigned long long count, enabled, running, adjusted;
+	unsigned long long count, enabled = 0, running = 0, adjusted;
+	int errors=0;
 
 	/* we must read each counter individually */
 	for ( i = 0; i < pe_ctl->num_events; i++ ) {
@@ -1099,14 +1182,25 @@ _pe_rdpmc_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
 		count = mmap_read_self(pe_ctl->events[i].mmap_buf,
 						&enabled,&running);
 
-		/* TODO: error checking? */
+		if (count==0xffffffffffffffffULL) {
+			errors++;
+		}
 
 		/* Handle multiplexing case */
-		if (enabled!=running) {
+		if (enabled == running) {
+			/* no adjustment needed */
+		}
+		else if (enabled && running) {
 			adjusted = (enabled * 128LL) / running;
 			adjusted = adjusted * count;
 			adjusted = adjusted / 128LL;
 			count = adjusted;
+		} else {
+			/* This should not happen, but we have had it reported */
+			SUBDBG("perf_event kernel bug(?) count, enabled, "
+				"running: %lld, %lld, %lld\n",
+				papi_pe_buffer[0],enabled,running);
+
 		}
 
 		pe_ctl->counts[i] = count;
@@ -1115,6 +1209,8 @@ _pe_rdpmc_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
 	*events = pe_ctl->counts;
 
 	SUBDBG("EXIT: *events: %p\n", *events);
+
+	if (errors) return PAPI_ESYS;
 
 	return PAPI_OK;
 }
@@ -1242,10 +1338,16 @@ _pe_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
 	int i, j, ret = -1;
 	pe_control_t *pe_ctl = ( pe_control_t *) ctl;
 	long long papi_pe_buffer[READ_BUFFER_SIZE];
+	int result;
 
 	/* Handle fast case */
+	/* FIXME: we fallback to slow reads if *any* event in eventset fails */
+	/*        in theory we could only fall back for the one event        */
+	/*        but that makes the code more complicated.                  */
 	if ((_perf_event_vector.cmp_info.fast_counter_read) && (!pe_ctl->inherit)) {
-		return _pe_rdpmc_read( ctx, ctl, events, flags);
+		result=_pe_rdpmc_read( ctx, ctl, events, flags);
+		/* if successful we are done, otherwise fall back to read */
+		if (result==PAPI_OK) return PAPI_OK;
 	}
 
 	/* Handle case where we are multiplexing */
@@ -1268,6 +1370,12 @@ _pe_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
 	else {
 		if (pe_ctl->events[0].group_leader_fd!=-1) {
 			PAPIERROR("Was expecting group leader");
+		}
+
+		SUBDBG("%d,%d READ %d %d\n",mygettid(),pe_ctl->tid,pe_ctl->num_events,pe_ctl->events[0].event_fd);
+		if (BAD_FD_CHECK(pe_ctl->events[0].event_fd)) {
+		  PAPIERROR("BAD READ FD is %d, BUG",pe_ctl->events[0].event_fd);
+		  return PAPI_EBUG;
 		}
 
 		ret = read( pe_ctl->events[0].event_fd,
@@ -1628,6 +1736,7 @@ _pe_ctl( hwd_context_t *ctx, int code, _papi_int_option_t *option )
 	      return ret;
 	   }
 
+	   pe_ctl->attached = 1;
 	   pe_ctl->tid = option->attach.tid;
 
 	   /* If events have been already been added, something may */
@@ -1640,7 +1749,9 @@ _pe_ctl( hwd_context_t *ctx, int code, _papi_int_option_t *option )
       case PAPI_DETACH:
 	   pe_ctl = ( pe_control_t *) ( option->attach.ESI->ctl_state );
 
+	   pe_ctl->attached = 0;
 	   pe_ctl->tid = 0;
+
 	   return PAPI_OK;
 
       case PAPI_CPU_ATTACH:
@@ -1653,11 +1764,6 @@ _pe_ctl( hwd_context_t *ctx, int code, _papi_int_option_t *option )
 	       return ret;
 	   }
 	   /* looks like we are allowed so set cpu number */
-
-	   /* this tells the kernel not to count for a thread   */
-	   /* should we warn if we try to set both?  perf_event */
-	   /* will reject it.                                   */
-	   pe_ctl->tid = -1;
 
 	   pe_ctl->cpu = option->cpu.cpu_num;
 
@@ -1674,7 +1780,7 @@ _pe_ctl( hwd_context_t *ctx, int code, _papi_int_option_t *option )
 	      return ret;
 	   }
 	   /* looks like we are allowed, so set event set level counting domains */
-       pe_ctl->domain = option->domain.domain;
+	pe_ctl->domain = option->domain.domain;
 	   return PAPI_OK;
 
       case PAPI_GRANUL:
@@ -1771,9 +1877,15 @@ static int
 _pe_init_control_state( hwd_control_state_t *ctl )
 {
 	pe_control_t *pe_ctl = ( pe_control_t *) ctl;
-
+	int i;
 	/* clear the contents */
 	memset( pe_ctl, 0, sizeof ( pe_control_t ) );
+	for (i=0;i<PERF_EVENT_MAX_MPX_COUNTERS;i++) {
+	  pe_ctl->events[i].event_fd = -1;
+	  pe_ctl->events[i].group_leader_fd = -1;
+	}
+	pe_ctl->tid = mygettid();
+	pe_ctl->cpu = -1;
 
 	/* Set the domain */
 	_pe_set_domain( ctl, _perf_event_vector.cmp_info.default_domain );
@@ -2357,7 +2469,8 @@ _pe_handle_paranoid(papi_vector_t *component) {
 	/* 0 means you can access CPU-specific data */
 	/* -1 means no restrictions                 */
 	retval=fscanf(fff,"%d",&paranoid_level);
-	if (retval!=1) fprintf(stderr,"Error reading paranoid level\n");
+	if (retval!=1) 
+	  PAPIERROR("Error reading paranoid level\n");
 	fclose(fff);
 
 	if (paranoid_level==3) {
@@ -2400,7 +2513,7 @@ _pe_version_workarounds(papi_vector_t *component) {
 	/* Check that processor is supported */
 	if (processor_supported(_papi_hwi_system_info.hw_info.vendor,
 			_papi_hwi_system_info.hw_info.cpuid_family)!=PAPI_OK) {
-		fprintf(stderr,"warning, your processor is unsupported\n");
+		PAPIERROR("warning, your processor is unsupported\n");
 		/* should not return error, as software events should still work */
 	}
 
@@ -2512,7 +2625,6 @@ _pe_init_component( int cidx )
 					PAPI_MAX_STR_LEN);
 				break;
 			default:
-				printf("PAPI error %d\n",retval);
 				strncpy(_papi_hwd[cidx]->cmp_info.disabled_reason,
 					"Unknown libpfm4 related error",
 					PAPI_MAX_STR_LEN);

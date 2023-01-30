@@ -1,39 +1,59 @@
-# $Id: Makefile 74977 2009-04-13 09:46:10Z tmohan $
+# $Id$
+DRIVER_OBJS=main.o eventinfo.o
+SO_OBJS=api.o thread.o process.o library.o papiex.o monitor.o output.o
 
-TARGETS += papiex papiex-config $(SONAME) papiex-specs papiex-report papiex-output2csv
+.PHONY: all lib
+all lib: $(SONAME) $(SOVERSION) $(SOBASE) 
 
-ifneq (,$(findstring PROFILING_SUPPORT,$(DEFINES)))
-  TARGETS += libpapiexio.so libpapiexmpsync.so
-  ifneq (,$(findstring USE_MPI,$(DEFINES)))
-    TARGETS += libpapiexmpi.so 
-  endif
+$(SO_OBJS): %.o: %.c papiex_internal.h papiex.h
+	$(CC_PTHR) $(CFLAGS) $(SHRCFLAGS) $(DEFINES) -I$(root-dir)/src $(INCLUDES) -c $<
+
+$(SONAME): $(SO_OBJS)
+ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+	$(CC_PTHR) $(SHRLDFLAGS) $(SO_OBJS) -Wl,-soname -Wl,$(SOVERSION) -o $(SONAME) -L$(LIBDIR) -lpapi -Wl,-rpath -Wl,$(LIBDIR)
+else
+	$(CC_PTHR) $(SHRLDFLAGS) $(SO_OBJS) -Wl,-soname -Wl,$(SOVERSION) -o $(SONAME) -L$(LIBDIR) -Wl,-rpath -Wl,$(LIBDIR)
 endif
 
-OBJS=papiex.o eventinfo.o memory.o 
-ifneq (,$(findstring HAVE_BINUTILS,$(DEFINES)))
-  TARGETS += libpapiexpathscale.so libpapiexgcc.so 
-  OBJS += pclookup.o
+$(SOVERSION): $(SONAME)
+	ln -sf $(SONAME) $(SOVERSION)
+
+$(SOBASE): $(SOVERSION)
+	ln -sf $(SOVERSION) $(SOBASE) 
+
+.PHONY: test check
+test check: 
+	cp -Rp $(root-dir)/src/tests/* $(build-dir)/tests
+	cd $(build-dir)/tests; PAPIEX_PREFIX=$(PREFIX) ./test.sh
+
+.PHONY: install
+install: all
+	ls -ld $(build-dir)
+	ls -l $(build-dir)	
+	install $(build-dir)/libpapiex.so.$(VERSION) $(DESTDIR)$(LIBDIR); cd $(DESTDIR)$(LIBDIR); ln -fs libpapiex.so.$(VERSION) libpapiex.so.$(INTERFACE); cd $(DESTDIR)$(LIBDIR); ln -fs libpapiex.so.$(INTERFACE) libpapiex.so
+	install $(root-dir)/src/papiex.sh $(DESTDIR)$(SHAREDIR)
+	install $(root-dir)/src/papiex.csh $(DESTDIR)$(SHAREDIR)
+
+#-L. -lpapiex -Wl,-rpath -Wl,$(build-dir)
+# $(build-dir)/libpapiex.so.1.3.0 -L$(LIBDIR) -lmonitor -lpapi 
+#-L$(LIBDIR) -lmonitor -lpapi 
+#-lmonitor 
+
+papiex: $(DRIVER_OBJS)
+	$(CC) $(CFLAGS) $(DEFINES) $* -o $@ -L$(LIBDIR) -lpapi -Wl,-rpath -Wl,$(LIBDIR)
+
+#
+# Junk
+# 
+
+uninstall:
+	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexio.so libpapiexio.so.$(INTERFACE) libpapiexio.so.$(INTERFACE).$(REVISION).$(AGE)
+	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexmpsync.so libpapiexmpsync.so.$(INTERFACE) libpapiexmpsync.so.$(INTERFACE).$(REVISION).$(AGE)
+ifneq (,$(findstring libpapiexmpi.so,$(TARGETS)))
+	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexmpi.so libpapiexmpi.so.$(INTERFACE) libpapiexmpi.so.$(INTERFACE).$(REVISION).$(AGE)
 endif
-LDFLAGS+=-Wl,-rpath -Wl,$(LIBDIR) -L$(build-dir) $(LIBS) -lm
-
-.PHONY: all
-all: $(TARGETS)
-
-threadsyncwrap.c: threadsyncwrap.in makewraplib.pl
-	perl $(root-dir)/src/makewraplib.pl < $(root-dir)/src/threadsyncwrap.in > $@
-
-iowrap.c: iowrap.in makewraplib.pl
-	perl $(root-dir)/src/makewraplib.pl < $(root-dir)/src/iowrap.in > $@
-
-mpiwrap.c: mpiwrap_special.c mpiwrap.in makempiwraplib.pl
-	perl $(root-dir)/src/makempiwraplib.pl -f < $(root-dir)/src/mpiwrap.in > $@
-	cat $(root-dir)/src/mpiwrap_special.c >> $@
-
-libiberty.so: $(LIBIBERTY_STATIC)
-	$(LD) -rpath $(LIBDIR) -whole-archive -soname $@ $< -G -o $@
-
-libbfd.so: $(LIBBFD_STATIC)
-	$(LD) -rpath $(LIBDIR) -whole-archive -soname $@ $< -G -o $@
+	-cd $(DESTDIR)$(BINDIR); rm -f papiex
+	-cd $(DESTDIR)$(SHAREDIR); rm -f papiex.sh papiex.csh
 
 libpapiexpathscale.so: pathscale.c 
 	$(CC) $(CFLAGS) $(DEFINES) -DUSE_PAPIEX $(SHRCFLAGS) $(SHRLDFLAGS) $^ -Wl,-soname -Wl,$@.$(INTERFACE) $(LDFLAGS) -ldl -o $@.$(INTERFACE).$(REVISION).$(AGE) && \
@@ -66,67 +86,34 @@ papiex-report: papiex-report.pl
 papiex-output2csv: papiex-output2csv.py
 	cp $< $@
 
-papiex: main.c eventinfo.o
-	$(CC) $(CFLAGS) $(DEFINES) $^ -o $@ $(LDFLAGS)
+threadsyncwrap.c: threadsyncwrap.in makewraplib.pl
+	perl $(root-dir)/src/makewraplib.pl < $(root-dir)/src/threadsyncwrap.in > $@
 
-# make sure you link libpapiex with 
-# static libbfd and libiberty to avoid unnecessary
-# dependencies on external shared libraries
-$(SONAME): $(OBJS) $(LIBBFD_STATIC) $(LIBIBERTY_STATIC)
-	$(CC_PTHR) $(CFLAGS) $(DEFINES) $(SHRLDFLAGS) $(OBJS) -Wl,-soname -Wl,$(SOVERSION) $(LDFLAGS) $(LIBBFD_STATIC) $(LIBIBERTY_STATIC) -ldl -lmonitor -lpthread -o $@ && \
-	ln -sf $(SONAME) $(SOVERSION) && \
-	ln -sf $(SOVERSION) $(SOBASE) 
+iowrap.c: iowrap.in makewraplib.pl
+	perl $(root-dir)/src/makewraplib.pl < $(root-dir)/src/iowrap.in > $@
 
-$(OBJS): %.o: %.c papiex_internal.h pathscale.h papiex.h
-	$(CC_PTHR) $(CFLAGS) $(DEFINES) $(SHRCFLAGS) -c $<
+mpiwrap.c: mpiwrap_special.c mpiwrap.in makempiwraplib.pl
+	perl $(root-dir)/src/makempiwraplib.pl -f < $(root-dir)/src/mpiwrap.in > $@
+	cat $(root-dir)/src/mpiwrap_special.c >> $@
 
-papiex-config: papiex-config.in
-	@sed -e 's\PREFIX\$(PREFIX)\g; s\EXECPREFIX\$(EXECPREFIX)\g; s\INCDIR\$(INCDIR)\g; s\LIBDIR\$(LIBDIR)\g; s\MANDIR\$(MANDIR)\g' < $< > $@
-	@chmod +x papiex-config
+libiberty.so: $(LIBIBERTY_STATIC)
+	$(LD) -rpath $(LIBDIR) -whole-archive -soname $@ $< -G -o $@
+
+libbfd.so: $(LIBBFD_STATIC)
+	$(LD) -rpath $(LIBDIR) -whole-archive -soname $@ $< -G -o $@
 
 papiex-specs: specs
 	-rm -frv $@
 	cp -r $< $@
 
-install: all
-	install $(build-dir)/libpapiex.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiex.so.$(INTERFACE).$(REVISION).$(AGE) libpapiex.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiex.so.$(INTERFACE) libpapiex.so
-ifneq (,$(findstring libpapiexmpi.so,$(TARGETS)))
-	install $(build-dir)/libpapiexmpi.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexmpi.so.$(INTERFACE).$(REVISION).$(AGE) libpapiexmpi.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexmpi.so.$(INTERFACE) libpapiexmpi.so
+ifneq (,$(findstring PROFILING_SUPPORT,$(DEFINES)))
+  TARGETS += libpapiexio.so libpapiexmpsync.so
+  ifneq (,$(findstring USE_MPI,$(DEFINES)))
+    TARGETS += libpapiexmpi.so 
+  endif
 endif
-ifneq (,$(findstring libpapiexio.so,$(TARGETS)))
-	install $(build-dir)/libpapiexio.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexio.so.$(INTERFACE).$(REVISION).$(AGE) libpapiexio.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexio.so.$(INTERFACE) libpapiexio.so
-endif
-ifneq (,$(findstring libpapiexmpsync.so,$(TARGETS)))
-	install $(build-dir)/libpapiexmpsync.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexmpsync.so.$(INTERFACE).$(REVISION).$(AGE) libpapiexmpsync.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexmpsync.so.$(INTERFACE) libpapiexmpsync.so
-endif
-ifneq (,$(findstring libpapiexpathscale.so,$(TARGETS)))
-	install $(build-dir)/libpapiexpathscale.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexpathscale.so.$(INTERFACE).$(REVISION).$(AGE) libpapiexpathscale.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexpathscale.so.$(INTERFACE) libpapiexpathscale.so
-endif
-ifneq (,$(findstring libpapiexgcc.so,$(TARGETS)))
-	install $(build-dir)/libpapiexgcc.so.$(INTERFACE).$(REVISION).$(AGE) $(DESTDIR)$(LIBDIR)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexgcc.so.$(INTERFACE).$(REVISION).$(AGE) libpapiexgcc.so.$(INTERFACE)
-	cd $(DESTDIR)$(LIBDIR); ln -fs libpapiexgcc.so.$(INTERFACE) libpapiexgcc.so
-endif
-	install $(build-dir)/papiex $(DESTDIR)$(BINDIR)
-	install $(build-dir)/papiex-report $(DESTDIR)$(BINDIR)
-	install $(build-dir)/papiex-output2csv $(DESTDIR)$(BINDIR)
-	install -d $(DESTDIR)$(PREFIX)/share/papiex
-	cp -v $(build-dir)/papiex-specs/* $(DESTDIR)$(PREFIX)/share/papiex/
 
-uninstall:
-	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexio.so libpapiexio.so.$(INTERFACE) libpapiexio.so.$(INTERFACE).$(REVISION).$(AGE)
-	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexmpsync.so libpapiexmpsync.so.$(INTERFACE) libpapiexmpsync.so.$(INTERFACE).$(REVISION).$(AGE)
-ifneq (,$(findstring libpapiexmpi.so,$(TARGETS)))
-	-cd $(DESTDIR)$(LIBDIR); rm -f libpapiexmpi.so libpapiexmpi.so.$(INTERFACE) libpapiexmpi.so.$(INTERFACE).$(REVISION).$(AGE)
-endif
-	-cd $(DESTDIR)$(BINDIR); rm -f papiex
+papiex-config: papiex-config.in
+	@sed -e 's\PREFIX\$(PREFIX)\g; s\EXECPREFIX\$(EXECPREFIX)\g; s\INCDIR\$(INCDIR)\g; s\LIBDIR\$(LIBDIR)\g; s\MANDIR\$(MANDIR)\g' < $< > $@
+	@chmod +x papiex-config
+

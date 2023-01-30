@@ -49,6 +49,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #ifdef MONITOR_DYNAMIC
 #include <dlfcn.h>
 #endif
@@ -245,6 +246,7 @@ monitor_is_executable(const char *file)
 {
     char buf[PATH_MAX], *path;
     int  file_len, path_len;
+    struct stat statbuf = {0,};
 
     if (file == NULL) {
 	MONITOR_DEBUG1("attempt to exec NULL path\n");
@@ -254,11 +256,21 @@ monitor_is_executable(const char *file)
      * If file contains '/', then try just the file name itself,
      * otherwise, search for it on PATH.
      */
-    if (strchr(file, SLASH) != NULL)
-	return (access(file, X_OK) == 0);
-
+    if (strchr(file, SLASH) != NULL) {
+      if (access(file, X_OK) == 0) {
+	if (stat(file, &statbuf) == 0) 
+	  return(S_ISREG(statbuf.st_mode));
+	else
+	  return(0);
+      } 
+      return(0);
+    }
     file_len = strlen(file);
     path = getenv("PATH");
+    if (path == NULL) {
+      MONITOR_DEBUG("special case path for file = %s, PATH is NULL\n",file);
+      return(1);
+    }
     path += strspn(path, COLON);
     while (*path != 0) {
 	path_len = strcspn(path, COLON);
@@ -270,8 +282,12 @@ monitor_is_executable(const char *file)
 	buf[path_len] = SLASH;
 	memcpy(&buf[path_len + 1], file, file_len);
 	buf[path_len + 1 + file_len] = 0;
-	if (access(buf, X_OK) == 0)
-	    return (1);
+	if (access(buf, X_OK) == 0) {
+	  if (stat(buf,&statbuf) == 0)
+	    return(S_ISREG(statbuf.st_mode));
+	  else
+	    return(0);
+	}
 	path += path_len;
 	path += strspn(path, COLON);
     }
@@ -292,6 +308,8 @@ monitor_is_executable(const char *file)
  *  return from our override function.  Thus, we have to use the real
  *  fork (not the real vfork) in both cases.
  */
+volatile int inside_fork = FALSE;
+
 static pid_t
 monitor_fork(void)
 {
@@ -301,7 +319,7 @@ monitor_fork(void)
     monitor_fork_init();
     MONITOR_DEBUG1("calling monitor_pre_fork() ...\n");
     user_data = monitor_pre_fork();
-
+    inside_fork = TRUE;
     ret = (*real_fork)();
     if (ret != 0) {
 	/* Parent process. */
@@ -315,9 +333,9 @@ monitor_fork(void)
     else {
 	/* Child process. */
 	MONITOR_DEBUG("application forked, parent = %d\n", (int)getppid());
-	monitor_begin_process_fcn(user_data, TRUE);
+	monitor_begin_process_fcn(user_data, inside_fork);
     }
-
+    inside_fork = FALSE;
     return (ret);
 }
 
@@ -344,15 +362,14 @@ MONITOR_WRAP_NAME(vfork)(void)
 static int
 monitor_execv(const char *path, char *const argv[])
 {
-    int ret, is_exec;
-
+  int ret, is_exec;
     monitor_fork_init();
-    is_exec = access(path, X_OK) == 0;
+    is_exec = monitor_is_executable(path);
     MONITOR_DEBUG("about to execv, expecting %s, pid: %d, path: %s\n",
 		  (is_exec ? "success" : "failure"),
 		  (int)getpid(), path);
     if (is_exec) {
-	monitor_end_process_fcn(MONITOR_EXIT_EXEC);
+      monitor_end_process_fcn(MONITOR_EXIT_EXEC, 0);
 #ifdef MONITOR_DYNAMIC
 	monitor_end_library_fcn();
 #endif
@@ -361,8 +378,8 @@ monitor_execv(const char *path, char *const argv[])
 
     /* We only get here if real_execv fails. */
     if (is_exec) {
-	MONITOR_WARN("unexpected execv failure on pid: %d\n",
-		     (int)getpid());
+      MONITOR_WARN("unexpected execvp failure of %s on pid: %d\n",path,
+		   (int)getpid());
     }
     return (ret);
 }
@@ -381,7 +398,7 @@ monitor_execvp(const char *file, char *const argv[])
 		  (is_exec ? "success" : "failure"),
 		  (int)getpid(), file);
     if (is_exec) {
-	monitor_end_process_fcn(MONITOR_EXIT_EXEC);
+      monitor_end_process_fcn(MONITOR_EXIT_EXEC, 0);
 #ifdef MONITOR_DYNAMIC
 	monitor_end_library_fcn();
 #endif
@@ -390,8 +407,8 @@ monitor_execvp(const char *file, char *const argv[])
 
     /* We only get here if real_execvp fails. */
     if (is_exec) {
-	MONITOR_WARN("unexpected execvp failure on pid: %d\n",
-		     (int)getpid());
+      MONITOR_WARN("unexpected execvp failure of %s on pid: %d\n",file,
+		   (int)getpid());
     }
     return (ret);
 }
@@ -402,15 +419,14 @@ monitor_execvp(const char *file, char *const argv[])
 static int
 monitor_execve(const char *path, char *const argv[], char *const envp[])
 {
-    int ret, is_exec;
-
-    monitor_fork_init();
-    is_exec = access(path, X_OK) == 0;
-    MONITOR_DEBUG("about to execve, expecting %s, pid: %d, path: %s\n",
-		  (is_exec ? "success" : "failure"),
-		  (int)getpid(), path);
+  int ret, is_exec;
+  monitor_fork_init();
+  is_exec = monitor_is_executable(path);
+  MONITOR_DEBUG("about to execve, expxecting %s, pid: %d, path: %s\n",
+		(is_exec ? "success" : "failure"),
+		(int)getpid(), path);
     if (is_exec) {
-	monitor_end_process_fcn(MONITOR_EXIT_EXEC);
+      monitor_end_process_fcn(MONITOR_EXIT_EXEC, 0);
 #ifdef MONITOR_DYNAMIC
 	monitor_end_library_fcn();
 #endif
@@ -419,8 +435,8 @@ monitor_execve(const char *path, char *const argv[], char *const envp[])
 
     /* We only get here if real_execve fails. */
     if (is_exec) {
-	MONITOR_WARN("unexpected execve failure on pid: %d\n",
-		     (int)getpid());
+      MONITOR_WARN("unexpected execve failure of %s on pid: %d\n",path,
+		   (int)getpid());
     }
     return (ret);
 }
