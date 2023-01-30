@@ -1,34 +1,19 @@
-DEFINES=-DHAVE_PAPI -DHAVE_MONITOR
-
+DEFINES:=-DHAVE_MONITOR #-DHAVE_PAPI 
 LIBNAME=papiex
 
+# This needs to be the same as the top-level Makefile!
+#
 # If the API changed, bump this and reset all
-INTERFACE=1
+INTERFACE=2
 # If API has been added to but has backwards compat, bump this.
-AGE=0
+AGE=3
 # If anything changed at all bump this.
-REVISION=3
+REVISION=14
 
 VERSION=$(INTERFACE).$(AGE).$(REVISION)
 
 # Put USE_MPI test first as it will change the 
 # the compilers to MPICC.
-ifneq (,$(USE_MPI))
-DEFINES += -DUSE_MPI
-include Rules.mpi
-endif
-
-#ifneq (,$(FULL_CALIPER_DATA))
-# DEFINES += -DFULL_CALIPER_DATA
-#endif
-ifneq (,$(PROFILING_SUPPORT))
-DEFINES += -DPROFILING_SUPPORT
-endif
-ifneq (,$(HAVE_BINUTILS))
-DEFINES += -DHAVE_BINUTILS
-include Rules.binutils
-endif
-
 MANPAGES1+=papiex-config.1 papiex.1
 MANPAGES3+=papiex_start.3 papiex_stop.3 papiex_accum.3
 HTMLMANPAGES1=$(patsubst %.1,%-man.html,$(MANPAGES1))
@@ -36,11 +21,9 @@ HTMLMANPAGES3=$(patsubst %.3,%-man.html,$(MANPAGES3))
 
 include Rules.papi
 include Rules.monitor
-# Rules.gmake sets the sensible defaults
 include Rules.gmake
-
-
-DEFINES += -DPAPIEX_VERSION=\"$(VERSION)\" -I$(root-dir)/src
+include Rules.export
+DEFINES += -DPAPIEX_VERSION=\"$(VERSION)\"
 
 ifneq (,$(MAILBUGS))
 DEFINES += -DMAILBUGS=\"$(MAILBUGS)\"

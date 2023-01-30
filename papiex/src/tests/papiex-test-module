@@ -1,0 +1,17 @@
+#%Module1.0#####################################################################
+##
+## papiextest modulefile
+##
+## modulefiles/papiextest.  
+##
+proc ModulesHelp { } {
+	global papiextestversion
+	puts stderr "adds PAPIEX_DUMMY var to environment"
+}
+
+module-whatis	"adds PAPIEX_DUMMY var to environment"
+
+# for Tcl script use only
+set	papiextestversion	1.0.0
+setenv 	PAPIEX_DUMMY		"Hello there"
+

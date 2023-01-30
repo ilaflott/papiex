@@ -36,12 +36,12 @@ ifeq (,$(PFM_OBJS))
 $(PFM_LIB_PATH)/libpfm.a:
 ifneq (,${PFM_ROOT})
 ifeq ("$(CC_COMMON_NAME)","icc")
-	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS)" DBG="-g -Wall -Werror" $(FORCE_PFM_ARCH) lib
+	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS)" OPTIM="$(OPTFLAGS)" DBG="-g -Wall -Werror" $(FORCE_PFM_ARCH) lib
 else
 ifeq (1,$(HAVE_NO_OVERRIDE_INIT))
-	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS) -Wno-override-init" $(FORCE_PFM_ARCH) lib
+	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS) -Wno-override-init" OPTIM="$(OPTFLAGS)" $(FORCE_PFM_ARCH) lib
 else 
-	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS)" $(FORCE_PFM_ARCH) lib
+	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC) $(BITFLAGS)" OPTIM="$(OPTFLAGS)" $(FORCE_PFM_ARCH) lib
 endif
 endif
 else
@@ -64,7 +64,7 @@ papi_libpfm4_events.o: papi_libpfm4_events.c $(HEADERS)
 native_clean:
 	-rm -f $(MISCOBJS)
 ifneq (,${PFM_ROOT})
-	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" clean
+	-$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" clean
 endif
 
 native_install:
@@ -79,5 +79,5 @@ endif
 
 native_clobber:
 ifneq (,${PFM_ROOT})
-	 $(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" distclean
+	 -$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" distclean
 endif

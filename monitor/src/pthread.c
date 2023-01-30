@@ -199,7 +199,6 @@ volatile static char monitor_in_exit_cleanup = 0;
 static pthread_key_t monitor_pthread_key;
 
 volatile static char monitor_has_used_threads = 0;
-volatile static char monitor_has_reached_main = 0;
 volatile static char monitor_thread_support_done = 0;
 volatile static char monitor_fini_thread_done = 0;
 static int shootdown_signal = 0;
@@ -475,6 +474,7 @@ monitor_shootdown_handler(int sig)
     (*real_pthread_setcancelstate)(old_state, NULL);
 }
 
+#if 0
 /*
  *  Call monitor_thread_support.
  */
@@ -502,6 +502,7 @@ monitor_thread_release(void)
 
     monitor_has_reached_main = 1;
 }
+#endif
 
 /*
  *  Called from main.c at end process time for possible thread cleanup.
@@ -933,6 +934,7 @@ monitor_begin_thread(void *arg)
     MONITOR_ASM_LABEL(monitor_thread_fence1);
     MONITOR_DEBUG1("\n");
 
+#if 0
     /*
      * Wait for monitor_init_thread_support() to finish in the main
      * thread before this thread runs.
@@ -946,6 +948,7 @@ monitor_begin_thread(void *arg)
      */
     while (! monitor_thread_support_done)
 	usleep(MONITOR_POLL_USLEEP_TIME);
+#endif
 
     /*
      * Don't create any new threads after someone has called exit().
@@ -1050,6 +1053,9 @@ MONITOR_WRAP_NAME(pthread_create)(PTHREAD_CREATE_PARAM_LIST)
 
     MONITOR_DEBUG1("\n");
 
+    extern volatile int inside_fork;
+    monitor_begin_process_fcn(NULL, inside_fork);
+
     /*
      * There is no race condition to get here first because until now,
      * there is only one thread.
@@ -1071,17 +1077,13 @@ MONITOR_WRAP_NAME(pthread_create)(PTHREAD_CREATE_PARAM_LIST)
     }
 
     /*
-     * Normally, we run thread_support here, on the first call to
-     * pthread_create().  But if we're here early, before
-     * libc_start_main, then defer thread_support until after
-     * init_process in libc_start_main.
+     * Call thread_support on the first call to pthread_create(), we
+     * no longer defer this.
      */
     if (! monitor_thread_support_done) {
-	if (monitor_has_reached_main) {
-	    monitor_call_thread_support();
-	} else {
-	    MONITOR_DEBUG1("deferring thread support\n");
-	}
+	MONITOR_DEBUG1("calling monitor_init_thread_support() ...\n");
+	monitor_thread_support_done = 1;
+	monitor_init_thread_support();
     }
 
     /*
@@ -1153,7 +1155,7 @@ MONITOR_WRAP_NAME(pthread_exit)(void *data)
     tn = monitor_get_tn();
     if (tn == NULL || tn->tn_is_main) {
 	MONITOR_DEBUG1("pthread_exit called from main thread\n");
-	monitor_end_process_fcn(MONITOR_EXIT_NORMAL);
+	monitor_end_process_fcn(MONITOR_EXIT_NORMAL, 0);
     }
 
     MONITOR_GET_REAL_NAME_WRAP(real_pthread_exit, pthread_exit);
