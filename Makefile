@@ -1,6 +1,6 @@
 OS_TARGET?=centos-7
 # Please sync with papiex/Makefile
-VERSION=2.3.14
+VERSION=2.3.15
 # Please sync with papiex/Makefile
 RELEASE=papiex-epmt-$(VERSION)-$(OS_TARGET).tgz
 #
@@ -80,7 +80,7 @@ papi $(LIBPAPI): libpfm papi/src/Makefile
 	$(MAKE) -C papi/src install-lib install-utils
 
 libpfm $(LIBPFM):
-	$(MAKE) -C libpfm OPTIM=-O2 LDCONFIG=true install-lib 
+	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=n OPTIM=-O2 install-lib 
 	$(MAKE) -C libpfm/examples OPTIM=-O2 EXAMPLESDIR=$(DESTDIR)$(PREFIX)/bin install-examples 
 endif
 

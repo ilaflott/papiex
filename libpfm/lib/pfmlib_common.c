@@ -1526,8 +1526,8 @@ pfmlib_build_event_pattrs(pfmlib_event_desc_t  *e)
 				pmu->validate_pattrs[e->osid](pmu, e);
 		}
 	}
-	for (i = 0; i < e->npattrs; i++)
-		DPRINT("%d %d %d %d %d %s\n", e->event, i, e->pattrs[i].type, e->pattrs[i].ctrl, e->pattrs[i].idx, e->pattrs[i].name);
+	for (i = 0; i < e->npattrs; i++) {
+	  DPRINT("%d %d %d %d %d %s\n", e->event, i, e->pattrs[i].type, e->pattrs[i].ctrl, e->pattrs[i].idx, e->pattrs[i].name); }
 
 	return PFM_SUCCESS;
 error:
@@ -1713,10 +1713,10 @@ found:
 
 	for (i = 0; i < d->nattrs; i++) {
 		pfmlib_event_attr_info_t *a = attr(d, i);
-		if (a->type != PFM_ATTR_RAW_UMASK)
-			DPRINT("%d %d %d %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name);
-		else
-			DPRINT("%d %d RAW_UMASK (0x%x)\n", d->event, i, a->idx);
+		if (a->type != PFM_ATTR_RAW_UMASK) {
+		  DPRINT("%d %d %d %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name); }
+		else {
+		  DPRINT("%d %d RAW_UMASK (0x%x)\n", d->event, i, a->idx); }
 	}
 error:
 	free(str);
