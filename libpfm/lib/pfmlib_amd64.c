@@ -174,10 +174,18 @@ amd64_get_revision(pfm_amd64_config_t *cfg)
 	} else if (cfg->family == 21) { /* family 15h */
 		rev = PFM_PMU_AMD64_FAM15H_INTERLAGOS;
 	} else if (cfg->family == 23) { /* family 17h */
-		rev = PFM_PMU_AMD64_FAM17H;
+                if (cfg->model >= 48)
+			rev = PFM_PMU_AMD64_FAM17H_ZEN2;
+		else
+                        rev = PFM_PMU_AMD64_FAM17H_ZEN1;
 	} else if (cfg->family == 22) { /* family 16h */
 		rev = PFM_PMU_AMD64_FAM16H;
-	}
+	} else if (cfg->family == 25) { /* family 19h */
+                switch (cfg->model) {
+                default:
+                        rev = PFM_PMU_AMD64_FAM19H_ZEN3;
+                }
+        }
 
         cfg->revision = rev;
 }
@@ -276,34 +284,23 @@ void amd64_display_reg(void *this, pfmlib_event_desc_t *e, pfm_amd64_reg_t reg)
 {
 	pfmlib_pmu_t *pmu = this;
 
-	if (IS_FAMILY_10H(pmu) || IS_FAMILY_15H(pmu))
-		__pfm_vbprintf("[0x%"PRIx64" event_sel=0x%x umask=0x%x os=%d usr=%d en=%d int=%d inv=%d edge=%d cnt_mask=%d guest=%d host=%d] %s\n",
-			reg.val,
-			reg.sel_event_mask | (reg.sel_event_mask2 << 8),
-			reg.sel_unit_mask,
-			reg.sel_os,
-			reg.sel_usr,
-			reg.sel_en,
-			reg.sel_int,
-			reg.sel_inv,
-			reg.sel_edge,
-			reg.sel_cnt_mask,
-			reg.sel_guest,
-			reg.sel_host,
-			e->fstr);
-	else
-		__pfm_vbprintf("[0x%"PRIx64" event_sel=0x%x umask=0x%x os=%d usr=%d en=%d int=%d inv=%d edge=%d cnt_mask=%d] %s\n",
-			reg.val,
-			reg.sel_event_mask,
-			reg.sel_unit_mask,
-			reg.sel_os,
-			reg.sel_usr,
-			reg.sel_en,
-			reg.sel_int,
-			reg.sel_inv,
-			reg.sel_edge,
-			reg.sel_cnt_mask,
-			e->fstr);
+	__pfm_vbprintf("[0x%"PRIx64" event_sel=0x%x umask=0x%x os=%d usr=%d en=%d int=%d inv=%d edge=%d cnt_mask=%d",
+		reg.val,
+		reg.sel_event_mask | (reg.sel_event_mask2 << 8),
+		reg.sel_unit_mask,
+		reg.sel_os,
+		reg.sel_usr,
+		reg.sel_en,
+		reg.sel_int,
+		reg.sel_inv,
+		reg.sel_edge,
+		reg.sel_cnt_mask);
+
+	/* Fam10h or later has host/guest filterting except Fam11h */
+	if (pfm_amd64_supports_virt(pmu))
+		__pfm_vbprintf(" guest=%d host=%d", reg.sel_guest, reg.sel_host);
+
+	__pfm_vbprintf("] %s\n", e->fstr);
 }
 
 int
@@ -535,8 +532,7 @@ pfm_amd64_get_encoding(void *this, pfmlib_event_desc_t *e)
 			reg.sel_os = 1;
 		if (e->dfl_plm & PFM_PLM3)
 			reg.sel_usr = 1;
-		if ((IS_FAMILY_10H(this) || IS_FAMILY_15H(this))
-		     && e->dfl_plm & PFM_PLMH)
+		if (e->dfl_plm & PFM_PLMH)
 			reg.sel_host = 1;
 	}
 
@@ -681,6 +677,7 @@ pfm_amd64_get_event_attr_info(void *this, int pidx, int attr_idx, pfmlib_event_a
 		info->is_dfl = 0;
 	}
 	info->is_precise = 0;
+	info->support_hw_smpl = 0;
 	info->equiv  = NULL;
 	info->ctrl   = PFM_ATTR_CTRL_PMU;
 	info->idx    = idx; /* namespace specific index */
@@ -703,6 +700,7 @@ pfm_amd64_get_event_info(void *this, int idx, pfm_event_info_t *info)
 	info->pmu   = pmu->pmu;
 
 	info->is_precise = 0;
+	info->support_hw_smpl = 0;
 	info->nattrs  = amd64_num_umasks(this, idx);
 	info->nattrs += amd64_num_mods(this, idx);
 
@@ -715,8 +713,8 @@ pfm_amd64_validate_table(void *this, FILE *fp)
 	pfmlib_pmu_t *pmu = this;
 	const amd64_entry_t *pe = this_pe(this);
 	const char *name =  pmu->name;
-	unsigned int j, k;
-	int i, ndfl;
+	unsigned int i, j, k;
+	int ndfl;
 	int error = 0;
 
 	if (!pmu->atdesc) {
@@ -729,7 +727,7 @@ pfm_amd64_validate_table(void *this, FILE *fp)
 		error++;
 	}
 
-	for(i=0; i < pmu->pme_count; i++) {
+	for(i=0; i < (unsigned int)pmu->pme_count; i++) {
 
 		if (!pe[i].name) {
 			fprintf(fp, "pmu: %s event%d: :: no name (prev event was %s)\n", pmu->name, i,
@@ -822,6 +820,12 @@ pfm_amd64_validate_table(void *this, FILE *fp)
 					fprintf(fp, "pmu: %s event%d: %s :: umask %s and %s have overlapping code bits\n", name, i, pe[i].name, pe[i].umasks[j].uname, pe[i].umasks[k].uname);
 					error++;
 				}
+			}
+		}
+		for (j=i+1; j < (unsigned int)pmu->pme_count; j++) {
+			if (pe[i].code == pe[j].code && pe[i].flags == pe[j].flags) {
+				fprintf(fp, "pmu: %s events %s and %s have the same code 0x%x\n", pmu->name, pe[i].name, pe[j].name, pe[i].code);
+				error++;
 			}
 		}
 	}

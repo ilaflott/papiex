@@ -39,7 +39,9 @@ The library supports many PMUs. The current version can handle:
 		AMD64 Fam14h (Bobcat)
 		AMD64 Fam15h (Bulldozer) (core and uncore)
 		AMD64 Fam16h (Jaguar)
-		AMD64 Fam17h (Zen)
+		AMD64 Fam17h (Zen1)
+		AMD64 Fam17h (Zen2)
+		AMD64 Fam19h (Zen3) (core and L3)
 
 	- For Intel X86: 
 		Intel P6 (Pentium II, Pentium Pro, Pentium III, Pentium M)
@@ -53,9 +55,12 @@ The library supports many PMUs. The current version can handle:
 		Intel Broadwell
 		Intel SkyLake
 		Intel CascadeLake
+		Intel IceLake
+		Intel SapphireRapid
 		Intel Silvermont
 		Intel Airmont
 		Intel Goldmont
+		Intel Tremont
 		Intel RAPL (energy consumption)
 		Intel Knights Corner
 		Intel Knights Landing (core, uncore)
@@ -69,6 +74,10 @@ The library supports many PMUs. The current version can handle:
 		ARMV8 Cortex A57, A53
 		Applied Micro X-Gene
 		Qualcomm Krait
+		Fujitsu A64FX
+		ARM Neoverse N1
+		ARM Neoverse N2
+		Huawei HiSilicon Kunpeng 920
 
 	- For SPARC
 		Ultra I, II
@@ -84,6 +93,7 @@ The library supports many PMUs. The current version can handle:
 		Power 8
 		Power 8 Nest
 		Power 9
+		Power 10
 		PPC970
 		Torrent
 		System z (s390x)

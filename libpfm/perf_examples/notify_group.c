@@ -122,7 +122,7 @@ main(int argc, char **argv)
 	 * Install the signal handler (SIGIO)
 	 */
 	memset(&act, 0, sizeof(act));
-	act.sa_sigaction = (void *)sigio_handler;
+	act.sa_sigaction = (void (*)(int, siginfo_t *, void *)) sigio_handler;
 	act.sa_flags = SA_SIGINFO;
 	sigaction (SIGIO, &act, 0);
 
@@ -144,9 +144,9 @@ main(int argc, char **argv)
 	/*
  	 * allocates fd for us
  	 */
-	ret = perf_setup_list_events("cycles,"
-				       "instructions,"
-					"cycles",
+	ret = perf_setup_list_events("cycles:u,"
+				       "instructions:u,"
+					"cycles:u",
 				        &fds, &num_fds);
 	if (ret || !num_fds)
 		exit(1);

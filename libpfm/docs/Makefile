@@ -40,6 +40,9 @@ ARCH_MAN=libpfm_intel_core.3	\
 	 libpfm_amd64_fam15h.3	\
 	 libpfm_amd64_fam16h.3	\
 	 libpfm_amd64_fam17h.3	\
+	 libpfm_amd64_fam17h_zen2.3 \
+	 libpfm_amd64_fam19h_zen3.3 \
+	 libpfm_amd64_fam19h_zen3_l3.3 \
 	 libpfm_intel_atom.3	\
 	 libpfm_intel_nhm.3	\
 	 libpfm_intel_nhm_unc.3 \
@@ -53,7 +56,11 @@ ARCH_MAN=libpfm_intel_core.3	\
 	 libpfm_intel_bdw.3	\
 	 libpfm_intel_rapl.3	\
 	 libpfm_intel_slm.3	\
+	 libpfm_intel_tmt.3	\
 	 libpfm_intel_skl.3	\
+	 libpfm_intel_icl.3	\
+	 libpfm_intel_icx.3	\
+	 libpfm_intel_spr.3	\
 	 libpfm_intel_glm.3	\
 	 libpfm_intel_knl.3	\
 	 libpfm_intel_knm.3	\
@@ -119,13 +126,17 @@ ARCH_MAN += libpfm_arm_xgene.3 \
 	    libpfm_arm_ac15.3 \
 	    libpfm_arm_ac8.3 \
 	    libpfm_arm_ac9.3 \
-	    libpfm_arm_qcom_krait.3
+	    libpfm_arm_qcom_krait.3 \
+	    libpfm_arm_neoverse_n1.3 \
+	    libpfm_arm_neoverse_n2.3
 endif
 
 ifeq ($(CONFIG_PFMLIB_ARCH_ARM64),y)
 ARCH_MAN += libpfm_arm_xgene.3 \
 	    libpfm_arm_ac57.3 \
-	    libpfm_arm_ac53.3
+	    libpfm_arm_ac53.3 \
+	    libpfm_arm_a64fx.3 \
+	    libpfm_arm_neoverse_n2.3
 endif
 
 ifeq ($(CONFIG_PFMLIB_ARCH_MIPS),y)

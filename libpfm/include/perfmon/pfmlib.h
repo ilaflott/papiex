@@ -419,7 +419,7 @@ typedef enum {
 	PFM_PMU_INTEL_BDX_UNC_SB2,	/* Intel Broadwell-X S-Box 2 uncore */
 	PFM_PMU_INTEL_BDX_UNC_SB3,	/* Intel Broadwell-X S-Box 3 uncore */
 
-	PFM_PMU_AMD64_FAM17H,		/* AMD AMD64 Fam17h Zen */
+	PFM_PMU_AMD64_FAM17H,		/* AMD AMD64 Fam17h Zen1 (deprecated) */
 	PFM_PMU_AMD64_FAM16H,		/* AMD AMD64 Fam16h Jaguar */
 
 	PFM_PMU_INTEL_SKX,		/* Intel Skylake-X */
@@ -543,9 +543,95 @@ typedef enum {
 
 	PFM_PMU_INTEL_KNM_UNC_UBOX,	/* Intel Knights Mill Ubox uncore */
 	PFM_PMU_INTEL_KNM_UNC_M2PCIE,	/* Intel Knights Mill M2PCIe uncore */
-	PFM_PMU_ARM_THUNDERX2,		/* Cavium ThunderX2 */
+	PFM_PMU_ARM_THUNDERX2,		/* Marvell ThunderX2 */
 
 	PFM_PMU_INTEL_CLX,		/* Intel CascadeLake X */
+
+	PFM_PMU_ARM_THUNDERX2_DMC0,	/* Marvell ThunderX2 DMC unit 0 uncore */
+	PFM_PMU_ARM_THUNDERX2_DMC1,	/* Marvell ThunderX2 DMC unit 1 uncore */
+	PFM_PMU_ARM_THUNDERX2_LLC0,	/* Marvell ThunderX2 LLC unit 0 uncore */
+	PFM_PMU_ARM_THUNDERX2_LLC1,	/* Marvell ThunderX2 LLC unit 1 uncore */
+	PFM_PMU_ARM_THUNDERX2_CCPI0,	/* Marvell ThunderX2 Cross-Socket Interconnect unit 0 uncore */
+	PFM_PMU_ARM_THUNDERX2_CCPI1,	/* Marvell ThunderX2 Cross-Socket Interconnect unit 1 uncore */
+
+	PFM_PMU_AMD64_FAM17H_ZEN1,	/* AMD AMD64 Fam17h Zen1 */
+	PFM_PMU_AMD64_FAM17H_ZEN2,	/* AMD AMD64 Fam17h Zen2 */
+
+	PFM_PMU_INTEL_TMT,		/* Intel Tremont */
+	PFM_PMU_INTEL_ICL,		/* Intel IceLake */
+
+	PFM_PMU_ARM_A64FX,		/* Fujitsu A64FX processor */
+	PFM_PMU_ARM_N1,			/* ARM Neoverse N1 */
+
+	PFM_PMU_AMD64_FAM19H_ZEN3,	/* AMD AMD64 Fam19h Zen3 */
+	PFM_PMU_AMD64_RAPL,		/* AMD64 RAPL */
+	PFM_PMU_AMD64_FAM19H_ZEN3_L3,	/* AMD64 Fam17h Zen3 L3 */
+
+	PFM_PMU_INTEL_ICX,		/* Intel IceLakeX */
+
+	PFM_PMU_ARM_N2,			/* ARM Neoverse N2 */
+
+	PFM_PMU_ARM_KUNPENG,		/* HiSilicon Kunpeng processor */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_DDRC0, /* Hisilicon Kunpeng SCCL unit 1 DDRC 0 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_DDRC1, /* Hisilicon Kunpeng SCCL unit 1 DDRC 1 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_DDRC2, /* Hisilicon Kunpeng SCCL unit 1 DDRC 2 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_DDRC3, /* Hisilicon Kunpeng SCCL unit 1 DDRC 3 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_DDRC0, /* Hisilicon Kunpeng SCCL unit 3 DDRC 0 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_DDRC1, /* Hisilicon Kunpeng SCCL unit 3 DDRC 1 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_DDRC2, /* Hisilicon Kunpeng SCCL unit 3 DDRC 2 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_DDRC3, /* Hisilicon Kunpeng SCCL unit 3 DDRC 3 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_DDRC0, /* Hisilicon Kunpeng SCCL unit 5 DDRC 0 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_DDRC1, /* Hisilicon Kunpeng SCCL unit 5 DDRC 1 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_DDRC2, /* Hisilicon Kunpeng SCCL unit 5 DDRC 2 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_DDRC3, /* Hisilicon Kunpeng SCCL unit 5 DDRC 3 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_DDRC0, /* Hisilicon Kunpeng SCCL unit 7 DDRC 0 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_DDRC1, /* Hisilicon Kunpeng SCCL unit 7 DDRC 1 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_DDRC2, /* Hisilicon Kunpeng SCCL unit 7 DDRC 2 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_DDRC3, /* Hisilicon Kunpeng SCCL unit 7 DDRC 3 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_HHA2,  /* Hisilicon Kunpeng SCCL unit 1 HHA 2 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_HHA3,  /* Hisilicon Kunpeng SCCL unit 1 HHA 3 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_HHA0,  /* Hisilicon Kunpeng SCCL unit 3 HHA 0 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_HHA1,  /* Hisilicon Kunpeng SCCL unit 3 HHA 1 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_HHA6,  /* Hisilicon Kunpeng SCCL unit 5 HHA 6 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_HHA7,  /* Hisilicon Kunpeng SCCL unit 5 HHA 7 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_HHA4,  /* Hisilicon Kunpeng SCCL unit 7 HHA 4 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_HHA5,  /* Hisilicon Kunpeng SCCL unit 7 HHA 5 uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C10, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C11, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C12, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C13, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C14, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C15, /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C8,  /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL1_L3C9,  /* Hisilicon Kunpeng SCCL unit 1 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C0,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C1,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C2,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C3,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C4,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C5,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C6,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL3_L3C7,  /* Hisilicon Kunpeng SCCL unit 3 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C24, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C25, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C26, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C27, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C28, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C29, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C30, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL5_L3C31, /* Hisilicon Kunpeng SCCL unit 5 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C16, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C17, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C18, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C19, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C20, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C21, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C22, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+	PFM_PMU_ARM_KUNPENG_UNC_SCCL7_L3C23, /* Hisilicon Kunpeng SCCL unit 7 L3C uncore */
+
+	PFM_PMU_INTEL_SPR,		/* Intel SapphireRapid */
+
+	PFM_PMU_POWER10,		/* IBM POWER10 */
 	/* MUST ADD NEW PMU MODELS HERE */
 
 	PFM_PMU_MAX			/* end marker */
@@ -645,6 +731,16 @@ typedef struct {
 	} SWIG_NAME(flags);
 } pfm_pmu_info_t;
 
+/*
+ * possible values for pfm_event_info_t.is_speculative
+ * possible values for pfm_event_attr_info_t.is_speculative
+ */
+typedef enum {
+	PFM_EVENT_INFO_SPEC_NA    = 0, /* speculation info not available */
+	PFM_EVENT_INFO_SPEC_TRUE  = 1, /* counts speculative exec events */
+	PFM_EVENT_INFO_SPEC_FALSE = 2, /* counts non-speculative exec events */
+} pfm_event_info_spec_t;
+
 typedef struct {
 	const char		*name;	/* event name */
 	const char		*desc;	/* event description */
@@ -657,8 +753,10 @@ typedef struct {
 	int			nattrs;	/* number of attributes */
 	int			reserved; /* for future use */
 	struct {
-		unsigned int	is_precise:1;	/* precise sampling (Intel X86=PEBS) */
-		unsigned int	reserved_bits:31;
+		unsigned int	is_precise:1;	  /* precise sampling (Intel X86=PEBS) */
+		unsigned int	is_speculative:2; /* count correct and wrong path occurrences */
+		unsigned int	support_hw_smpl:1;/* can be recorded by hw buffer (Intel X86=EXTPEBS) */
+		unsigned int	reserved_bits:28;
 	} SWIG_NAME(flags);
 } pfm_event_info_t;
 
@@ -670,11 +768,13 @@ typedef struct {
 	uint64_t		code;	/* attribute code */
 	pfm_attr_t		type;	/* attribute type */
 	int			idx;	/* attribute opaque index */
-	pfm_attr_ctrl_t		ctrl;		/* what is providing attr */
+	pfm_attr_ctrl_t		ctrl;	/* what is providing attr */
 	struct {
-		unsigned int    is_dfl:1;	/* is default umask */
-		unsigned int    is_precise:1;	/* Intel X86: supports PEBS */
-		unsigned int	reserved_bits:30;
+		unsigned int    is_dfl:1;	  /* is default umask */
+		unsigned int    is_precise:1;	  /* Intel X86: supports PEBS */
+		unsigned int	is_speculative:2; /* count correct and wrong path occurrences */
+		unsigned int	support_hw_smpl:1;/* can be recorded by hw buffer (Intel X86=EXTPEBS) */
+		unsigned int	reserved_bits:27;
 	} SWIG_NAME(flags);
 	union {
 		uint64_t	dfl_val64;	/* default 64-bit value */

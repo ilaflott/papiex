@@ -58,6 +58,7 @@ typedef struct {
 	const char	*name;			/* name */
 	const char	*desc;			/* description */
 	const char	*equiv;			/* event is aliased to */
+	const char	*pmu;			/* PMU instance (sysfs) */
 	uint64_t	id;			/* perf_hw_id or equivalent */
 	int		modmsk;			/* modifiers bitmask */
 	int		type;			/* perf_type_id */
@@ -74,7 +75,7 @@ typedef struct {
 #define PERF_FL_DEFAULT	0x1	/* umask is default for group */
 #define PERF_FL_PRECISE	0x2	/* support precise sampling */
 
-#define PERF_INVAL_OVFL_IDX ((unsigned long)-1)
+#define PERF_INVAL_OVFL_IDX (~0UL)
 
 #define PCL_EVT(f, t, m, fl)	\
 	{ .name = #f,		\
@@ -102,11 +103,21 @@ typedef struct {
 	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
 	}
 
+#define PCL_EVTR(f, t, a, d)\
+	{ .name = #f,		\
+	  .id = a,		\
+	  .type = t,		\
+	  .desc = d,		\
+	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
+	}
+
+
 #define PCL_EVT_HW(n) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, 0)
 #define PCL_EVT_SW(n) PCL_EVT(PERF_COUNT_SW_##n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, 0)
 #define PCL_EVT_AHW(n, a) PCL_EVTA(n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, PERF_COUNT_HW_##a, 0)
 #define PCL_EVT_ASW(n, a) PCL_EVTA(n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, PERF_COUNT_SW_##a, 0)
 #define PCL_EVT_HW_FL(n, fl) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, fl)
+#define PCL_EVT_RAW(n, e, u, d) PCL_EVTR(n, PERF_TYPE_RAW, (u) << 8 | (e), d)
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN	1024
@@ -209,8 +220,7 @@ get_debugfs_mnt(void)
 			break;
 		}
 	}
-	if (buffer)
-		free(buffer);
+	free(buffer);
 
 	fclose(fp);
 
@@ -242,7 +252,10 @@ perf_table_clone(void)
 	}
 	return addr;
 }
-
+static inline int perf_pe_allocated(void)
+{
+	return perf_pe != perf_static_events;
+}
 /*
  * allocate space for one new event in event table
  *
@@ -254,18 +267,40 @@ static perf_event_t *
 perf_table_alloc_event(void)
 {
 	perf_event_t *new_pe;
+	perf_event_t *p;
+	size_t num_free;
 
+	/*
+	 * if we need to allocate an event and we have not yet
+	 * cloned the static events, then clone them
+	 */
+	if (!perf_pe_allocated()) {
+		DPRINT("cloning static event table\n");
+		p = perf_table_clone();
+		if (!p)
+			return NULL;
+		perf_pe = p;
+	}
 retry:
 	if (perf_pe_free < perf_pe_end)
 		return perf_pe_free++;
 
 	perf_pe_count += PERF_ALLOC_EVENT_COUNT;
 	
+	/*
+	 * compute number of free events left
+	 * before realloc() to avoid compiler warning (use-after-free)
+	 * even though we are simply doing pointer arithmetic and not
+	 * dereferencing the perf_pe after realloc when it may be stale
+	 * in case the memory was moved.
+	 */
+	num_free = perf_pe_free - perf_pe;
+
 	new_pe = realloc(perf_pe, perf_pe_count * sizeof(perf_event_t));
 	if (!new_pe) 
 		return NULL;
 	
-	perf_pe_free = new_pe + (perf_pe_free - perf_pe);
+	perf_pe_free = new_pe + num_free;
 	perf_pe_end = perf_pe_free + PERF_ALLOC_EVENT_COUNT;
 	perf_pe = new_pe;
 
@@ -290,18 +325,27 @@ static perf_umask_t *
 perf_table_alloc_umask(void)
 {
 	perf_umask_t *new_um;
+	size_t num_free;
 
 retry:
 	if (perf_um_free < perf_um_end)
 		return perf_um_free++;
 
 	perf_um_count += PERF_ALLOC_UMASK_COUNT;
-	
+
+	/*
+	 * compute number of free unmasks left
+	 * before realloc() to avoid compiler warning (use-after-free)
+	 * even though we are simply doing pointer arithmetic and not
+	 * dereferencing the perf_um after realloc when it may be stale
+	 * in case the memory was moved.
+	 */
+	num_free = perf_um_free - perf_um;
 	new_um = realloc(perf_um, perf_um_count * sizeof(*new_um));
 	if (!new_um) 
 		return NULL;
 	
-	perf_um_free = new_um + (perf_um_free - perf_um);
+	perf_um_free = new_um + num_free;
 	perf_um_end = perf_um_free + PERF_ALLOC_UMASK_COUNT;
 	perf_um = new_um;
 
@@ -340,8 +384,6 @@ gen_tracepoint_table(void)
 	dir1 = opendir(debugfs_mnt);
 	if (!dir1)
 		return;
-
-	p = perf_table_clone();
 
 	err = 0;
 	while((d1 = readdir(dir1)) && err >= 0) {
@@ -385,7 +427,7 @@ gen_tracepoint_table(void)
 		}
 
 		p->desc = "tracepoint";
-		p->id = -1;
+		p->id = ~0ULL;
 		p->type = PERF_TYPE_TRACEPOINT;
 		p->umask_ovfl_idx = PERF_INVAL_OVFL_IDX;
 		p->modmsk = 0,
@@ -468,7 +510,7 @@ gen_tracepoint_table(void)
 		 */
 		if (!numasks) {
 			free(tracepoint_name);
-			reuse_event =1;
+			reuse_event = 1;
 			continue;
 		}
 
@@ -497,11 +539,52 @@ pfm_perf_detect(void *this)
 #endif
 }
 
+/*
+ * checks that the event is exported by the PMU specified by the event entry
+ * This code assumes the PMU type is RAW, which requires an encoding exported
+ * via sysfs.
+ */
+static int
+event_exist(perf_event_t *e)
+{
+	char buf[PATH_MAX];
+
+	snprintf(buf, PATH_MAX, "/sys/devices/%s/events/%s", e->pmu ? e->pmu : "cpu", e->name);
+
+	return access(buf, F_OK) == 0;
+}
+
+static void
+add_optional_events(void)
+{
+	perf_event_t *ent, *e;
+	size_t i;
+
+	for (i = 0; i < PME_PERF_EVENT_OPT_COUNT; i++) {
+
+		e = perf_optional_events + i;
+
+		if (!event_exist(e)) {
+			DPRINT("perf::%s not available\n", e->name);
+			continue;
+		}
+
+		ent = perf_table_alloc_event();
+		if (!ent)
+			break;
+		memcpy(ent, e, sizeof(*e));
+
+		perf_nevents++;
+	}
+}
+
 static int
 pfm_perf_init(void *this)
 {
 	pfmlib_pmu_t *pmu = this;
+
 	perf_pe = perf_static_events;
+
 	/*
 	 * we force the value of pme_count by hand because
 	 * the library could be initialized mutltiple times
@@ -512,6 +595,10 @@ pfm_perf_init(void *this)
 
 	/* must dynamically add tracepoints */
 	gen_tracepoint_table();
+
+	/* must dynamically add optional hw events */
+	add_optional_events();
+
 	/* dynamically patch supported plm based on CORE PMU plm */
 	pmu->supported_plm = pfm_perf_pmu_supported_plm(pmu);
 
@@ -695,6 +782,7 @@ pfm_perf_get_encoding(void *this, pfmlib_event_desc_t *e)
 		break;
 	case PERF_TYPE_HARDWARE:
 	case PERF_TYPE_SOFTWARE:
+	case PERF_TYPE_RAW:
 		ret = PFM_SUCCESS;
 		e->codes[0] = perf_pe[e->event].id;
 		e->count = 1;
@@ -724,6 +812,7 @@ pfm_perf_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 		break;
 	case PERF_TYPE_HARDWARE:
 	case PERF_TYPE_SOFTWARE:
+	case PERF_TYPE_RAW:
 		ret = PFM_SUCCESS;
 		e->codes[0] = perf_pe[e->event].id;
 		e->count = 1;
@@ -765,6 +854,7 @@ pfm_perf_get_event_attr_info(void *this, int idx, int attr_idx, pfmlib_event_att
 	info->ctrl = PFM_ATTR_CTRL_PMU;
 
 	info->is_precise =  !!(um->uflags & PERF_FL_PRECISE);
+	info->support_hw_smpl = info->is_precise;
 	info->is_dfl = 0;
 	info->idx = attr_idx;
 	info->dfl_val64 = 0;
@@ -783,6 +873,7 @@ pfm_perf_get_event_info(void *this, int idx, pfm_event_info_t *info)
 	info->idx   = idx;
 	info->pmu   = pmu->pmu;
 	info->is_precise =  !!(perf_pe[idx].flags & PERF_FL_PRECISE);
+	info->support_hw_smpl = info->is_precise;
 
 	/* unit masks + modifiers */
 	info->nattrs  = perf_pe[idx].numasks;
@@ -796,14 +887,15 @@ pfm_perf_terminate(void *this)
 	perf_event_t *p;
 	int i, j;
 
-	if (!(perf_pe && perf_um))
+	/* if perf_pe not allocated then perf_um not allocated */
+	if (!perf_pe_allocated())
 		return;
 
 	/*
 	 * free tracepoints name + unit mask names
 	 * which are dynamically allocated
 	 */
-	for (i=0; i < perf_nevents; i++) {
+	for (i = 0; i < perf_nevents; i++) {
 		p = &perf_pe[i];
 
 		if (p->type != PERF_TYPE_TRACEPOINT)
@@ -820,7 +912,7 @@ pfm_perf_terminate(void *this)
 		 * first PERF_MAX_UMASKS are pre-allocated
 		 * the rest is in a separate dynamic table
 		 */
-		for (j=0; j < p->numasks; j++) {
+		for (j = 0; j < p->numasks; j++) {
 			if (j == PERF_MAX_UMASKS)
 				break;
 			free((void *)p->umasks[j].uname);
@@ -829,9 +921,10 @@ pfm_perf_terminate(void *this)
 	/*
 	 * perf_pe is systematically allocated
 	 */
-	free(perf_pe);
-	perf_pe = NULL;
-	perf_pe_free = perf_pe_end = NULL;
+	if (perf_pe_allocated()) {
+		free(perf_pe);
+		perf_pe = perf_pe_free = perf_pe_end = NULL;
+	}
 
 	if (perf_um) {
 		int n;
@@ -839,9 +932,8 @@ pfm_perf_terminate(void *this)
 		 * free the dynamic umasks' uname
 		 */
 		n = perf_um_free - perf_um;
-		for(i=0; i < n; i++) {
+		for(i=0; i < n; i++)
 			free((void *)(perf_um[i].uname));
-		}
 		free(perf_um);
 		perf_um = NULL;
 		perf_um_free = perf_um_end = NULL;
@@ -989,6 +1081,10 @@ pfm_perf_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 			if (e->pattrs[i].idx == PERF_ATTR_H)
 				compact = 1;
 		}
+
+		/* hardware sampling not supported */
+		if (e->pattrs[i].idx == PERF_ATTR_HWS)
+			compact = 1;
 
 		if (compact) {
 			pfmlib_compact_pattrs(e, i);
