@@ -32,8 +32,9 @@ void papiex_start(int point, char *label)
       return;
     }
   if (_papiex_opt_debug) {
+    int i;
     LIBPAPIEX_DEBUG("point %d real_cyc %llu",point,thr_data->data[point].tmp_real_cyc);
-    for (int i=0;i<eventcnt;i++)
+    for (i=0;i<eventcnt;i++)
       LIBPAPIEX_DEBUG("point %d event %d count %llu",point,i,thr_data->data[point].tmp_counters[i]);
   }
 #else

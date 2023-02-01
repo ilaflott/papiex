@@ -1,4 +1,4 @@
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	ifneq (,$(PAPI_INC_PATH))
 		INCLUDES += -I$(PAPI_INC_PATH)
 	endif

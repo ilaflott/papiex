@@ -1,5 +1,12 @@
-DEFINES:=-DHAVE_MONITOR #-DHAVE_PAPI 
-LIBNAME=papiex
+CONFIG_PAPIEX_DEBUG?=n
+CONFIG_PAPIEX_PAPI?=n
+
+ifeq ($(CONFIG_PAPIEX_PAPI),y)
+DEFINES+=-DHAVE_PAPI
+endif
+ifeq ($(CONFIG_PAPIEX_DEBUG),y)
+DEFINES+=-DDEBUG
+endif
 
 # This needs to be the same as the top-level Makefile!
 #
@@ -9,9 +16,9 @@ INTERFACE=2
 AGE=3
 # If anything changed at all bump this.
 REVISION=15
-
 VERSION=$(INTERFACE).$(AGE).$(REVISION)
 
+LIBNAME=papiex
 # Put USE_MPI test first as it will change the 
 # the compilers to MPICC.
 MANPAGES1+=papiex-config.1 papiex.1

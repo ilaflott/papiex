@@ -4,7 +4,8 @@ VERSION=2.3.15
 # Please sync with papiex/Makefile
 RELEASE=papiex-epmt-$(VERSION)-$(OS_TARGET).tgz
 #
-DEFINES=-DHAVE_MONITOR -DHAVE_PAPI
+CONFIG_PAPIEX_DEBUG?=n
+CONFIG_PAPIEX_PAPI?=n
 #
 SHELL = /bin/bash
 CC := gcc
@@ -20,7 +21,7 @@ LIBPAPI := $(DESTDIR)$(PREFIX)/lib/libpapi.so
 LIBPAPIEX := $(DESTDIR)$(PREFIX)/lib/libpapiex.so
 DEPS = $(LIBMONITOR) $(LIBPFM) $(LIBPAPI) $(LIBPAPIEX)
 #
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 PAPI_PREFIX := $(PREFIX)
 PAPI_INC_PATH ?= $(PAPI_PREFIX)/include
 PAPI_LIB_PATH ?= $(PAPI_PREFIX)/lib
@@ -30,11 +31,15 @@ MONITOR_PREFIX := $(PREFIX)
 MONITOR_INC_PATH ?= $(MONITOR_PREFIX)/include
 MONITOR_LIB_PATH ?= $(MONITOR_PREFIX)/lib
 #
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+PAPI_CONFIGURE_ARGS = --with-static-user-events --with-static-papi-events --enable-perfevent_rdpmc=no --disable-perf_event_uncore --prefix=$(PAPI_PREFIX) --with-pfm-root=$(shell pwd)/libpfm --with-debug=yes
+else
 PAPI_CONFIGURE_ARGS = --with-static-user-events --with-static-papi-events --enable-perfevent_rdpmc=no --disable-perf_event_uncore --prefix=$(PAPI_PREFIX) --with-pfm-root=$(shell pwd)/libpfm --with-debug=no
 endif
+endif
 
-export PREFIX CC OCC SHELL DEFINES
+export PREFIX CC OCC SHELL CONFIG_PAPIEX_PAPI CONFIG_PAPIEX_DEBUG
 
 .PHONY: monitor papiex papi check libpfm install dist
 .PHONY: docker-clean docker-distclean docker-dist docker-check docker-test-dist
@@ -44,7 +49,7 @@ install: papiex
 $(RELEASE) dist: $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib
 	mv $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/bin.old
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
 endif
 	for f in monitor-link monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
@@ -61,7 +66,7 @@ test-$(RELEASE) dist-test:
 check: 
 	cd papiex; $(MAKE) PREFIX=$(PREFIX) LIBPAPIEX=$(LIBPAPIEX) check
 
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 papiex $(LIBPAPIEX): papi monitor
 else
 papiex $(LIBPAPIEX): monitor
@@ -69,18 +74,26 @@ endif
 	cd papiex; $(MAKE) CC=$(CC) OCC=$(OCC) MONITOR_INC_PATH=$(MONITOR_INC_PATH) MONITOR_LIB_PATH=$(MONITOR_LIB_PATH) PAPI_INC_PATH=$(PAPI_INC_PATH) PAPI_LIB_PATH=$(PAPI_LIB_PATH) install
 
 monitor/Makefile:
-	cd monitor; ./configure --prefix=$(MONITOR_PREFIX)
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+	cd monitor; ./configure --prefix=$(MONITOR_PREFIX) --disable-link-static
+else
+	cd monitor; ./configure --prefix=$(MONITOR_PREFIX) --disable-link-static --disable-debug
+endif
 monitor $(LIBMONITOR): monitor/Makefile
 	cd monitor; $(MAKE) install
 
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 papi/src/Makefile:
 	cd papi/src ; ./configure $(PAPI_CONFIGURE_ARGS)
 papi $(LIBPAPI): libpfm papi/src/Makefile
 	$(MAKE) -C papi/src install-lib install-utils
 
 libpfm $(LIBPFM):
-	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=n OPTIM=-O2 install-lib 
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=y OPTIM=-O2 install-lib
+else
+	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=n OPTIM=-O2 install-lib
+endif
 	$(MAKE) -C libpfm/examples OPTIM=-O2 EXAMPLESDIR=$(DESTDIR)$(PREFIX)/bin install-examples 
 endif
 
@@ -88,7 +101,7 @@ endif
 clean:
 	-cd monitor; $(MAKE) clean
 	-cd libpfm; $(MAKE) clean
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	-cd papi/src; $(MAKE) clean
 	-cd papiex; $(MAKE) clean
 endif
@@ -97,7 +110,7 @@ endif
 .PHONY: distclean clobber
 distclean clobber: clean
 	-cd monitor; $(MAKE) distclean
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	-cd libpfm; $(MAKE) distclean
 	-cd papi/src; $(MAKE) distclean
 endif
