@@ -123,14 +123,8 @@ int papiex_init_library(void)
   tmp = getenv(PAPIEX_OUTPUT_ENV);
   if ((tmp == NULL) || (strlen(tmp) == 0))
     tmp = PAPIEX_DEFAULT_OUTPUT_PREFIX;
-  strncpy(output_prefix,tmp,sizeof(output_prefix)-2);
-  output_prefix[sizeof(output_prefix)-2] = '\0';
-
-  int t = strlen(output_prefix);
-  if (output_prefix[t] != '/') {
-    output_prefix[t] = '/';
-    output_prefix[t+1] = '\0';
-  }
+  strncpy(output_prefix,tmp,sizeof(output_prefix)-1);
+  output_prefix[sizeof(output_prefix)-1] = '\0';
   LIBPAPIEX_DEBUG("Output prefix is %s",output_prefix);
     
   return eventcnt;
