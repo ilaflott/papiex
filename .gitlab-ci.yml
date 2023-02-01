@@ -3,20 +3,21 @@ default:
 
 stages:      
   - build
-  - test
+#  - test
 
 build:       
   stage: build
-  artifacts:
-    untracked: true
+#  artifacts:
+#    untracked: true
   script:
     - make CONFIG_PAPIEX_PAPI=n CONFIG_PAPIEX_DEBUG=n
-
+    - apt-get update -y
+    - apt-get install python3 tcsh python2 host tcl -y
+    - make check
+    
 test:
   stage: test
   dependencies: 
     - build
   script:
-    - apt-get update -y
-    - apt-get install python3 tcsh python2 host tcl -y
-    - make check
+    - echo "Dummy"
