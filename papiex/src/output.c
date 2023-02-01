@@ -143,7 +143,7 @@ static int create_process_file(char *prefix, char *fn, int *gen)
     return -1;
   
   while (1) {
-    sprintf(rfn,"%s%s-papiex-%d-%d.csv",prefix,process_hostname,getpid(),instance);
+    snprintf(rfn,PATH_MAX,"%s%s-%s-%d-%d.csv",prefix,process_hostname,"papiex",getpid(),instance);
     LIBPAPIEX_DEBUG("trying to open file %s",rfn);
     fd = open(rfn, O_WRONLY|O_CREAT|O_EXCL, 0644);
     if (fd >= 0)

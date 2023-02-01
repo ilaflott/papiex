@@ -56,7 +56,7 @@ static void init_library_globals(void)
 int papiex_init_library(void) 
 {
   char *opts = NULL, *tmp = NULL;
-  static char maxopts[4096];
+  char maxopts[4096];
   int ecnt = 0;
 
   init_library_globals();
@@ -80,7 +80,8 @@ int papiex_init_library(void)
   // Iterate through options string and set options
 
   if (strlen(opts) > 0) {
-    strncpy(maxopts,opts,sizeof(maxopts));
+    strncpy(maxopts,opts,sizeof(maxopts)-1);
+    maxopts[4095] = '\0';
     tmp = strtok(maxopts,", ");
     if (tmp) 
       {
@@ -120,12 +121,16 @@ int papiex_init_library(void)
   // If output is set, add hostname in front of it
 
   tmp = getenv(PAPIEX_OUTPUT_ENV);
-  if ((tmp == NULL) || (strlen(tmp) == 0)) 
-    strncpy(output_prefix,PAPIEX_DEFAULT_OUTPUT_PREFIX,sizeof(output_prefix));
-  else 
-    strncpy(output_prefix,tmp,sizeof(output_prefix));
-  if (output_prefix[strlen(output_prefix)-1] != '/')
-    strcat(output_prefix,"/");
+  if ((tmp == NULL) || (strlen(tmp) == 0))
+    tmp = PAPIEX_DEFAULT_OUTPUT_PREFIX;
+  strncpy(output_prefix,tmp,sizeof(output_prefix)-2);
+  output_prefix[sizeof(output_prefix)-2] = '\0';
+
+  int t = strlen(output_prefix);
+  if (output_prefix[t] != '/') {
+    output_prefix[t] = '/';
+    output_prefix[t+1] = '\0';
+  }
   LIBPAPIEX_DEBUG("Output prefix is %s",output_prefix);
     
   return eventcnt;
