@@ -61,7 +61,7 @@ ls ${papiex_data_header_file} > /dev/null
 wc_results=$(wc -lw ${papiex_data_file})
 wc_header_results=$(wc -lw ${papiex_data_header_file})
 
-rm -rf ${PAPIEX_OUTPUT} ${kernel_version}
+rm -rf ${PAPIEX_OUTPUT} ${kernel_version} ${fn}
 
 IFS=', ' read -r -a array <<< "${wc_results}"
 echo data: wc -lw ${wc_results}
