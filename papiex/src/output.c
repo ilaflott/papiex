@@ -233,12 +233,13 @@ static int append_plugin_data(char *fn, char *line, int len, papiex_plugin_data_
 static void append_caliper_data(char *fn, char *line, int len, papiex_caliper_data_t *d)
 {
 #ifdef HAVE_PAPI
+  char s[64];
+  int e;
   if (exeinfo) { // PAPI works
-    char s[64];
     sprintf(s,",%lld",d->real_cyc);
     strlcat(line,s,PAPIEX_MAX_CSV_STRLEN);
   }
-  for (int e=0;e<eventcnt;e++) {
+  for (e=0;e<eventcnt;e++) {
     sprintf(s,",%lld",d->counters[e]);
     strlcat(line,s,PAPIEX_MAX_CSV_STRLEN);
   }

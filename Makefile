@@ -51,11 +51,12 @@ ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	mv $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/bin.old
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; mv $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+	rm -rf $(DESTDIR)$(PREFIX)/bin.old
 else
 	rm -rf $(DESTDIR)$(PREFIX)/bin
 endif
 #	for f in monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
-#	rm -f $(DESTDIR)$(PREFIX)/lib/libmonitor.la
+	-rm -f $(DESTDIR)$(PREFIX)/lib/lib*.a $(DESTDIR)$(PREFIX)/lib/lib*.la
 	for f in $(DESTDIR)$(PREFIX)/lib/*; do strip $$f; done
 	rm -rf $(DESTDIR)$(PREFIX)/include
 	rm -rf $(DESTDIR)$(PREFIX)/share
@@ -126,10 +127,11 @@ endif
 # meaning the source could be contaminated, but the distclean target should
 # ensure everything is cleaned up. Also, the formal release target should check
 # for any diffs against the repo and complain.
+DOCKER_MAKE = make OS_TARGET=$(OS_TARGET) CONFIG_PAPIEX_PAPI=$(CONFIG_PAPIEX_PAPI) CONFIG_PAPIEX_DEBUG=$(CONFIG_PAPIEX_DEBUG) 
 
 docker-dist:
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
-	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
@@ -137,13 +139,13 @@ docker-test-dist: $(RELEASE) test-$(RELEASE)
 
 docker-check:
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
-	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh $(DOCKER_MAKE) check
 
 docker-clean:
-	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) clean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) clean 
 
 docker-distclean:
-	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) distclean 
 
 
 
