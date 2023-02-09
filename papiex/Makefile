@@ -19,26 +19,12 @@ REVISION=15
 VERSION=$(INTERFACE).$(AGE).$(REVISION)
 
 LIBNAME=papiex
-# Put USE_MPI test first as it will change the 
-# the compilers to MPICC.
-MANPAGES1+=papiex-config.1 papiex.1
-MANPAGES3+=papiex_start.3 papiex_stop.3 papiex_accum.3
-HTMLMANPAGES1=$(patsubst %.1,%-man.html,$(MANPAGES1))
-HTMLMANPAGES3=$(patsubst %.3,%-man.html,$(MANPAGES3))
 
 include Rules.papi
 include Rules.monitor
 include Rules.gmake
 include Rules.export
 DEFINES += -DPAPIEX_VERSION=\"$(VERSION)\"
-
-ifneq (,$(MAILBUGS))
-DEFINES += -DMAILBUGS=\"$(MAILBUGS)\"
-endif
-
-ifneq (,$(MMPERFTOOLS_VERSION))
-DEFINES += -DMMPERFTOOLS_VERSION=\"$(MMPERFTOOLS_VERSION)\"
-endif
 
 maketest.output: 
 	cd $(build-dir)/tests; ./runtests > ../../$@ 2>&1

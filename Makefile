@@ -4,7 +4,7 @@ VERSION=2.3.15
 # Please sync with papiex/Makefile
 RELEASE=papiex-epmt-$(VERSION)-$(OS_TARGET).tgz
 #
-CONFIG_PAPIEX_DEBUG?=n
+CONFIG_PAPIEX_DEBUG?=y
 CONFIG_PAPIEX_PAPI?=n
 #
 SHELL = /bin/bash
@@ -46,16 +46,17 @@ export PREFIX CC OCC SHELL CONFIG_PAPIEX_PAPI CONFIG_PAPIEX_DEBUG
 
 install: papiex
 
-$(RELEASE) dist: $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib
+$(RELEASE) dist: 
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	mv $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/bin.old
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
-	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; mv $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+else
+	rm -rf $(DESTDIR)$(PREFIX)/bin
 endif
-	for f in monitor-link monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
-	rm -f $(DESTDIR)$(PREFIX)/lib/libmonitor.la
+#	for f in monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+#	rm -f $(DESTDIR)$(PREFIX)/lib/libmonitor.la
 	for f in $(DESTDIR)$(PREFIX)/lib/*; do strip $$f; done
-	rm -r $(DESTDIR)$(PREFIX)/bin.old
 	rm -rf $(DESTDIR)$(PREFIX)/include
 	rm -rf $(DESTDIR)$(PREFIX)/share
 	cd $(DESTDIR)$(PREFIX)/..; rm -f $(RELEASE); tar cvfz $(RELEASE) `basename $(PREFIX)`
@@ -100,11 +101,11 @@ endif
 .PHONY: clean
 clean:
 	-cd monitor; $(MAKE) clean
-	-cd libpfm; $(MAKE) clean
 ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
+	-cd libpfm; $(MAKE) clean
 	-cd papi/src; $(MAKE) clean
-	-cd papiex; $(MAKE) clean
 endif
+	-cd papiex; $(MAKE) clean
 	-rm -f *~
 
 .PHONY: distclean clobber
