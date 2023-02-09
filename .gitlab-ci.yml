@@ -1,14 +1,17 @@
 default:
-  image: gcc
+  image: centos:7
 
 stages:      
   - build
 #  - test
 
+# Most of whats needed for the test suite
 build:       
   stage: build
   script:
-    - make CONFIG_PAPIEX_PAPI=n CONFIG_PAPIEX_DEBUG=n
-    - apt-get update -y
-    - apt-get install python3 tcsh python2 host tcl -y
+    - yum update -y
+    - yum install -y gcc make file
+    - yum install -y gcc-c++ gcc-gfortran perl python3
+    - yum install -y tcsh bind-utils 
+    - yum install -y tcl environment-modules git
     - make check
