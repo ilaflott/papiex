@@ -14,4 +14,5 @@ build:
     - yum install -y gcc-c++ gcc-gfortran perl python3
     - yum install -y tcsh bind-utils 
     - yum install -y tcl environment-modules git
+    - make  
     - make check
