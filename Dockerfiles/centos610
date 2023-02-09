@@ -1,8 +1,0 @@
-FROM centos:6.10
-RUN yum install -y gcc make 
-RUN yum install -y strace gdb
-RUN yum install -y tcsh
-RUN yum install -y environment-modules
-RUN yum install -y git
-RUN yum install -y yum-utils
-RUN debuginfo-install tcsh-6.17-38.el6.x86_64

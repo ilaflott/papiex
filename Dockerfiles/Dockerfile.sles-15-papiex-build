@@ -1,7 +1,0 @@
-FROM opensuse/leap:15
-
-RUN zypper --non-interactive update
-RUN zypper --non-interactive install gcc make file tar gzip
-RUN zypper --non-interactive clean -a
-
-

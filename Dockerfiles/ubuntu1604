@@ -1,7 +1,0 @@
-FROM ubuntu:16.04
-RUN apt-get update 
-#&& apt-get install -y csh tcsh 
-#RUN apt-get install -y environment-modules
-RUN apt-get install -y gcc make
-# For debugging
-# RUN apt install -y strace gdb
