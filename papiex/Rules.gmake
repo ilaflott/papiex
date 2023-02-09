@@ -53,7 +53,7 @@ $(build-dir):
 	mkdir -p $(build-dir)/tests
 
 .PHONY: check
-check: 
+check: $(build-dir)
 	$(MAKE) -C $(build-dir) -f $(root-dir)/src/Makefile check
 
 .PHONY: clean
