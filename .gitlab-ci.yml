@@ -6,6 +6,7 @@ stages:
 #  - test
 
 # Most of whats needed for the test suite
+
 build:       
   stage: build
   script:
@@ -16,3 +17,36 @@ build:
     - yum install -y tcl environment-modules git
     - make  
     - make check
+
+build-with-papi:       
+  stage: build
+  script:
+    - yum update -y
+    - yum install -y gcc make file
+    - yum install -y gcc-c++ gcc-gfortran perl python3
+    - yum install -y tcsh bind-utils 
+    - yum install -y tcl environment-modules git
+    - make CONFIG_PAPIEX_PAPI=y 
+    - make CONFIG_PAPIEX_PAPI=y check
+
+build-with-no-debug:       
+  stage: build
+  script:
+    - yum update -y
+    - yum install -y gcc make file
+    - yum install -y gcc-c++ gcc-gfortran perl python3
+    - yum install -y tcsh bind-utils 
+    - yum install -y tcl environment-modules git
+    - make CONFIG_PAPIEX_DEBUG=n 
+    - make CONFIG_PAPIEX_DEBUG=n check
+
+build-with-no-debug-papi:       
+  stage: build
+  script:
+    - yum update -y
+    - yum install -y gcc make file
+    - yum install -y gcc-c++ gcc-gfortran perl python3
+    - yum install -y tcsh bind-utils 
+    - yum install -y tcl environment-modules git
+    - make CONFIG_PAPIEX_PAPI=y CONFIG_PAPIEX_DEBUG=n 
+    - make CONFIG_PAPIEX_PAPI=y CONFIG_PAPIEX_DEBUG=n check
