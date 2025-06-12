@@ -114,4 +114,3 @@ papiex collects the following data for each thread:
 | 46. timeslices            	| /proc/<pid>/task/<tid>/schedstat                 	| Integer        	| Thread  	| Number of run periods on CPU                           	|
 | 47. rdtsc_duration        	| PAPI                                           	| Integer        	| Thread  	| If PAPI, real time cycle duration of thread
 | *                             | PAPI                                              | Integer           | Thread    | PAPI metrics 
->>>>>>> master
