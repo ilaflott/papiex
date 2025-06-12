@@ -1,0 +1,7 @@
+FROM centos:6
+
+COPY Dockerfiles/CentOS-Base.repo /etc/yum.repos.d
+RUN yum update -y
+RUN yum install -y gcc make file
+
+
