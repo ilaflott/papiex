@@ -1,0 +1,9 @@
+ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+	ifneq (,$(PAPI_INC_PATH))
+		INCLUDES += -I$(PAPI_INC_PATH)
+	endif
+	ifneq (,$(PAPI_LIB_PATH))
+		LIBS += -Wl,-rpath -Wl,$(PAPI_LIB_PATH) -L$(PAPI_LIB_PATH) -lpapi
+	endif
+endif
+
