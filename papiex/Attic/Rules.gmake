@@ -1,0 +1,37 @@
+.PHONY: www-install
+www-install: www
+	cd www; scp -r * earth.cs.utk.edu:www-home/$(LIBNAME)
+
+.PHONY: www-dir
+www-dir:
+	-rm -rf www
+	mkdir www
+
+.PHONY: www docs
+www: www-dir $(LIBNAME)-$(VERSION).tar.gz docs www-native
+	cp $(LIBNAME).html www
+	cp src/$(LIBNAME).h www
+	cd man; cp $(HTMLMANPAGES1) $(HTMLMANPAGES3) ../www	
+	cp INSTALL www
+	cp $(LIBNAME)-$(VERSION).tar.gz www
+
+.PHONY: docs
+docs: $(HTMLMANPAGES1) $(HTMLMANPAGES3) $(LIBNAME).html 
+
+$(HTMLMANPAGES1): %-man.html: man/%.1
+	perl $(root-dir)/man/manserver.pl $< > man/$@
+
+$(HTMLMANPAGES3): %-man.html: man/%.3
+	perl $(root-dir)/man/manserver.pl $< > man/$@
+
+$(LIBNAME).html: $(LIBNAME).html.in
+	sed -e 's/VERSION/$(VERSION)/g' < $< > $@
+
+$(LIBNAME)-$(VERSION).tar.gz: docs
+	-rm $(LIBNAME)-$(VERSION).tar.gz
+	rm -rf /tmp/$(LIBNAME)
+	mkdir /tmp/$(LIBNAME)
+	cp -Rp . /tmp/$(LIBNAME)
+	cd /tmp; tar -c -v -z --exclude "CVS*" --exclude ".svn" --exclude "www" -f $(LIBNAME)-$(VERSION).tar.gz $(LIBNAME)
+	mv /tmp/$(LIBNAME)-$(VERSION).tar.gz .
+
