@@ -1,0 +1,14 @@
+default:
+  image: gcc
+
+stages:      
+  - build
+#  - test
+
+build:       
+  stage: build
+  script:
+    - make CONFIG_PAPIEX_PAPI=n CONFIG_PAPIEX_DEBUG=n
+    - apt-get update -y
+    - apt-get install python3 tcsh python2 host tcl -y
+    - make check

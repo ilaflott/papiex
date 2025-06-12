@@ -1,0 +1,8 @@
+*.target
+components_config.h
+config.h
+config.status
+f77papi.h
+f90papi.h
+fpapi.h
+papi_events_table.h
