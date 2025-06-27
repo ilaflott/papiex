@@ -100,6 +100,10 @@ endif
 	-cd papiex; $(MAKE) distclean
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
 
+# if on m-chip mac... use this
+DOCKER_BUILD:=docker build --platform linux/x86_64
+#DOCKER_BUILD:=docker build
+
 #
 # Docker targets
 #
@@ -108,17 +112,16 @@ endif
 # meaning the source could be contaminated, but the distclean target should
 # ensure everything is cleaned up. Also, the formal release target should check
 # for any diffs against the repo and complain.
-
 $(RELEASE) test-$(RELEASE) docker-dist:
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
+	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
 	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
 	docker run --privileged --rm -it $(OS_TARGET)-papiex-test
 
 docker-check:
-	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
 	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
 
 docker-clean:
