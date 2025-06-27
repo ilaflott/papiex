@@ -101,8 +101,8 @@ endif
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
 
 # if on m-chip mac... use this
-DOCKER_BUILD:=docker build --platform linux/x86_64
-#DOCKER_BUILD:=docker build
+DOCKER_BUILD:=docker build --platform linux/x86_64 -f
+#DOCKER_BUILD:=docker build -f
 
 #
 # Docker targets
@@ -113,15 +113,15 @@ DOCKER_BUILD:=docker build --platform linux/x86_64
 # ensure everything is cleaned up. Also, the formal release target should check
 # for any diffs against the repo and complain.
 $(RELEASE) test-$(RELEASE) docker-dist:
-	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
 	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
-	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
 	docker run --privileged --rm -it $(OS_TARGET)-papiex-test
 
 docker-check:
-	$(DOCKER_BUILD) -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
+	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
 	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
 
 docker-clean:
