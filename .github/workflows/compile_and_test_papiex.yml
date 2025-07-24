@@ -27,6 +27,24 @@ jobs:
           yum update -y                                                                                                                                                                 
           yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel
                                                                                                                                                                                                                                                                                                                                            
+      - name: install python3
+        run: |
+          cd /usr/src
+          echo 'downloading python'
+          curl -o Python-3.9.22.tgz https://www.python.org/ftp/python/3.9.22/Python-3.9.22.tgz
+          tar xzf Python-3.9.22.tgz
+          cd Python-3.9.22
+          echo 'building python3'
+          ./configure --quiet --prefix=/usr --enable-shared --enable-optimizations --enable-loadable-sqlite-extensions
+          make --silent install > /dev/null
+
+      - name: configure python3 and upgrade pip and grab gcc-c++
+        run: |
+          ldconfig
+          python3 -V
+          pip3 install --upgrade pip
+          yum install -y gcc-c++
+
       - name: make papiex                                                                                                                                               
         run: |                                                                                                                                                                          
           make OS_TARGET=rocky-8 distclean install dist                                                                                                                                
