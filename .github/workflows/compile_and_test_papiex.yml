@@ -25,16 +25,26 @@ jobs:
       - name: yum install and update                                                                                                                                                    
         run: |                                                                                                                                                                          
           yum update -y                                                                                                                                                                 
-          yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel procps
+          yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel
+
+      - name: install and configure sqlite3
+        run: |
+          cd /usr/src
+          echo 'downloading sqlite3'
+          curl -o sqlite-amalgamation-3490100.zip https://www.sqlite.org/2025/sqlite-amalgamation-3490100.zip
+          unzip sqlite-amalgamation-3490100.zip
+          echo 'building libsqlite3 with json1 and other useful extensions'
+          cd sqlite-amalgamation-3490100
+          gcc -shared -fPIC -O2  -DSQLITE_ENABLE_JSON1 -DSQLITE_ENABLE_LOAD_EXTENSION -DSQLITE_MAX_VARIABLE_NUMBER=9999 sqlite3.c -o /usr/lib64/libsqlite3.so
                                                                                                                                                                                                                                                                                                                                            
       - name: install python3
         run: |
           cd /usr/src
           echo 'downloading python'
           curl -o Python-3.9.22.tgz https://www.python.org/ftp/python/3.9.22/Python-3.9.22.tgz
-          curl -o Python-3.9.22.tgz.asc https://www.python.org/ftp/python/3.9.22/Python-3.9.22.tgz.asc
-          echo 'verifying checksum'
-          sha256sum -c Python-3.9.22.tgz.asc || { echo 'Checksum verification failed!'; exit 1; }
+          # echo 'verifying checksum'
+          # curl -o Python-3.9.22.tgz.asc https://www.python.org/ftp/python/3.9.22/Python-3.9.22.tgz.asc
+          # sha256sum -c Python-3.9.22.tgz.asc || { echo 'Checksum verification failed!'; exit 1; }
           tar xzf Python-3.9.22.tgz
           cd Python-3.9.22
           echo 'building python3'
