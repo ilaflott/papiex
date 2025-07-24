@@ -1,0 +1,36 @@
+name: compile_papiex                                                                                                                                                               
+                                                                                                                                                                                        
+on:                                                                                                                                                                                     
+  push                                                                                                                                                                                  
+                                                                                                                                                                                  
+# cancel running jobs if theres a newer push                                                                                                                                            
+concurrency:                                                                                                                                                                            
+  group: ${{ github.workflow }}-${{ github.ref }}                                                                                                                                       
+  cancel-in-progress: true                                                                                                                                                              
+                                                                                                                                                                                        
+                                                                                                                                                                                        
+jobs:                                                                                                                                                                                   
+  build-linux:                                                                                                                                                                          
+    runs-on: ubuntu-latest                                                                                                                                                              
+                                                                                                                                                                                        
+    #service:                                                                                                                                                                           
+    #  - postgres:latest                                                                                                                                                                
+                                                                                                                                                                                        
+    container:                                                                                                                                                                          
+      image: rockylinux:8                                                                                                                                                               
+      options: --privileged                                                                                                                                                             
+                                                                                                                                                                                        
+    steps:                                                                                                                                                                              
+      - uses: actions/checkout@v4                                                                                                                                                       
+      - name: yum install and update                                                                                                                                                    
+        run: |                                                                                                                                                                          
+          yum update -y                                                                                                                                                                 
+          yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel
+                                                                                                                                                                                                                                                                                                                                           
+      - name: make papiex                                                                                                                                               
+        run: |                                                                                                                                                                          
+          make OS_TARGET=rocky-8 docker-dist                                                                                                                                       
+
+      - name: test papiex
+        run: |
+          make OS_TARGET=rocky-8 docker-dist-test
