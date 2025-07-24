@@ -74,14 +74,16 @@ jobs:
       - name: make check papiex                                   
         run: |
           # Setup the environment, daemons and run the test script
+          touch /tmp/init.sh
           echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh 
-          source /tmp/init.sh
-          bash test.sh
+          /bin/bash /tmp/init.sh
+          bash papiex/src/tests/test.sh
 
       - name: make check papiex                                   
         run: |
           # Install papiex and papiex tester
           set release=papiex-epmt-2.0.0.tgz
+          mkdir --parents /opt/epmt
           mv ${release} /opt/epmt/
           test-${release} .
           mkdir --parents /home/tests
