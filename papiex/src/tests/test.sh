@@ -12,7 +12,7 @@ TESTSDIR=`dirname ${BASH_SOURCE}`
 TESTSDIR="$(cd "$(dirname "$TESTSDIR")"; pwd)/$(basename "$TESTSDIR")"
 
 # Convert to absolute path
-PAPIEX_PREFIX="${PAPIEX_PREFIX:-${TESTSDIR}/../../../papiex-oss-install}"
+PAPIEX_PREFIX="${PAPIEX_PREFIX:-${TESTSDIR}/../../../papiex-epmt-install}"
 PAPIEX_PREFIX="$(cd "$(dirname "${PAPIEX_PREFIX}")"; pwd)/$(basename "${PAPIEX_PREFIX}")"
 
 if [ ! -d ${PAPIEX_PREFIX} ]; then
