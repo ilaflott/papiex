@@ -1,4 +1,4 @@
-name: compile_papiex                                                                                                                                                               
+name: compile_and_test_papiex                                                                                                                                                               
                                                                                                                                                                                         
 on:                                                                                                                                                                                     
   push                                                                                                                                                                                  
@@ -22,7 +22,7 @@ jobs:
                                                                                                                                                                                         
     steps:                                                                                                                                                                              
       - uses: actions/checkout@v4                                                                                                                                                       
-      - name: build with yum install and update                                                                                                                                                    
+      - name: build env with yum install and update                                                                                                                                                    
         run: |                                                                                                                                                                          
           yum update -y                                                                                                                                                                 
           yum install -y gcc make file findutils
@@ -32,3 +32,36 @@ jobs:
           mkdir /build
           make OS_TARGET=rocky-8 distclean install dist dist-test                                                                                                                       
 
+      - name: setup test env after compiling with more yum etc
+        run: |
+          yum install -y gcc-c++ gcc-gfortran perl python3
+          yum install -y tcsh bind-utils openssh-clients openssh-server
+          yum install -y tcl environment-modules git
+          mkdir /var/run/sshd
+          echo -e "ForwardX11 no\nStrictHostKeyChecking no\nPreferredAuthentications publickey" >> /etc/ssh/ssh_config
+          # Generate SSH host keys without a passphrase for testing purposes only.
+          # This is acceptable in this controlled test environment as the image is not used in production.
+          ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' 
+          ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N "" && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+
+          # Configure two users with csh and tcsh shells and allow root to log in to them
+          useradd -m -s /bin/csh -pfoo cshsucks && useradd -m -s /usr/bin/tcsh -pfoo tcshsucks
+          mkdir ~cshsucks/.ssh  && cp ~/.ssh/authorized_keys ~cshsucks/.ssh/authorized_keys  && chmod 700 ~cshsucks/.ssh/  && chmod 600 ~cshsucks/.ssh/authorized_keys && chown -R cshsucks ~cshsucks/.ssh
+          mkdir ~tcshsucks/.ssh && cp ~/.ssh/authorized_keys ~tcshsucks/.ssh/authorized_keys && chmod 700 ~tcshsucks/.ssh/ && chmod 600 ~tcshsucks/.ssh/authorized_keys && chown -R tcshsucks ~tcshsucks/.ssh
+
+          # Setup the environment, daemons and run the test script
+          echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh 
+          source /tmp/init.sh
+          bash test.sh
+
+          # Install papiex and papiex tester
+          set release=papiex-epmt-2.0.0.tgz
+          mv ${release} /opt/epmt/
+          test-${release} .
+          mkdir --parents /home/tests
+          export PAPIEX_PREFIX=/opt/epmt/papiex-epmt-install
+          
+      - name: check papiex                                                                                                                                               
+        run: |                                                                                                                                                                          
+          make OS_TARGET=rocky-8 check
+          
