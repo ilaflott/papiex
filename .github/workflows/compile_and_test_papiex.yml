@@ -29,8 +29,8 @@ jobs:
                                                                                                                                                                                                                                                                                                                                            
       - name: make papiex                                                                                                                                               
         run: |                                                                                                                                                                          
-          make OS_TARGET=rocky-8 docker-dist                                                                                                                                       
+          make OS_TARGET=rocky-8 distclean install dist                                                                                                                                
 
       - name: test papiex
         run: |
-          make OS_TARGET=rocky-8 docker-dist-test
+          make OS_TARGET=rocky-8 check
