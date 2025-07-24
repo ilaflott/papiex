@@ -18,7 +18,7 @@ jobs:
                                                                                                                                                                                         
     container:                                                                                                                                                                          
       image: rockylinux:8                                                                                                                                                               
-      options: --privileged -it -v $(PWD):/build -w /build                                                                                                                                                           
+      options: --privileged                                                                                                                                                         
                                                                                                                                                                                         
     steps:                                                                                                                                                                              
       - uses: actions/checkout@v4                                                                                                                                                       
@@ -29,5 +29,6 @@ jobs:
 
       - name: compile papiex                                                                                                                                               
         run: |                                                                                                                                                                          
+          mkdir /build
           make OS_TARGET=rocky-8 distclean install dist dist-test                                                                                                                       
 
