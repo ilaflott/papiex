@@ -25,7 +25,7 @@ jobs:
       - name: yum install and update                                                                                                                                                    
         run: |                                                                                                                                                                          
           yum update -y                                                                                                                                                                 
-          yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel
+          yum install -y findutils unzip bash tcsh nc curl make git gcc postgresql-devel zlib-devel bzip2 bzip2-devel readline-devel sqlite-devel openssl-devel xz xz-devel libffi-devel procps
                                                                                                                                                                                                                                                                                                                                            
       - name: install python3
         run: |
