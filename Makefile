@@ -13,6 +13,10 @@ OCC := $(CC)
 DOCKER_RUN:=docker run
 DOCKER_BUILD:=docker build -f
 DOCKER_RUN_OPTS:=--rm -it
+# mchip mac? use below...
+#DOCKER_RUN:=docker run --platform linux/x86_64
+#DOCKER_BUILD:=docker build --platform linux/x86_64 -f
+#DOCKER_RUN_OPTS:=--rm -it
 #
 PREFIX := $(shell pwd)/papiex-epmt-install
 LIBMONITOR := $(DESTDIR)$(PREFIX)/lib/libmonitor.so
@@ -117,6 +121,7 @@ endif
 	-cd papiex; $(MAKE) distclean
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
 
+
 #
 # Docker targets
 #
@@ -137,6 +142,7 @@ docker-test-dist: $(RELEASE) test-$(RELEASE)
 docker-check:
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
 	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
+
 
 docker-clean:
 	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) clean 

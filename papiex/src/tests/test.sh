@@ -12,7 +12,7 @@ TESTSDIR=`dirname ${BASH_SOURCE}`
 TESTSDIR="$(cd "$(dirname "$TESTSDIR")"; pwd)/$(basename "$TESTSDIR")"
 
 # Convert to absolute path
-PAPIEX_PREFIX="${PAPIEX_PREFIX:-${TESTSDIR}/../../../papiex-oss-install}"
+PAPIEX_PREFIX="${PAPIEX_PREFIX:-${TESTSDIR}/../../../papiex-epmt-install}"
 PAPIEX_PREFIX="$(cd "$(dirname "${PAPIEX_PREFIX}")"; pwd)/$(basename "${PAPIEX_PREFIX}")"
 
 if [ ! -d ${PAPIEX_PREFIX} ]; then
@@ -106,14 +106,13 @@ declare -a sieves=(
     "bash --noprofile sieve.sh 100"
     "tcsh -f sieve.csh 100"
     "csh -f sieve.csh 100" 
-    "python2 sieve.py"
     "python3 sieve.py"
     "perl sieve.pl"
 )
 declare -a sshtests=(
     "ssh -o PreferredAuthentications=publickey localhost /bin/true"
-    "ssh -o PreferredAuthentications=publickey cshsucks@localhost /bin/true"
-    "ssh -o PreferredAuthentications=publickey tcshsucks@localhost /bin/true"
+    "ssh -o PreferredAuthentications=publickey cshuser@localhost /bin/true"
+    "ssh -o PreferredAuthentications=publickey tcshuser@localhost /bin/true"
 )
 
 function papiex()
