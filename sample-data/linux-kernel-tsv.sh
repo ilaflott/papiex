@@ -74,7 +74,7 @@ echo words ${array[1]} == ${total_words_csv}
 [ ${array[1]} -eq ${total_words_csv} ]
 
 IFS=', ' read -r -a array <<< "${wc_header_results}"
-echo header: wc -lw ${wc_results}
+echo header: wc -lw ${wc_header_results}
 echo lines ${array[0]} == ${total_lines_csv_header}
 echo words ${array[1]} == ${total_words_csv_header}
 [ ${array[0]} -eq ${total_lines_csv_header} ]
