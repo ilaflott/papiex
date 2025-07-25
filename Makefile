@@ -14,6 +14,11 @@ DOCKER_RUN:=docker run
 DOCKER_BUILD:=docker build -f
 DOCKER_RUN_OPTS:=--rm -it
 #
+## if on m-chip mac... use this - Ian
+#DOCKER_RUN:=docker run 
+#DOCKER_BUILD:=docker build --platform linux/x86_64 -f
+#DOCKER_RUN_OPTS:=--rm -it --platform linux/x86_64
+#
 PREFIX := $(shell pwd)/papiex-epmt-install
 LIBMONITOR := $(DESTDIR)$(PREFIX)/lib/libmonitor.so
 LIBPFM := $(DESTDIR)$(PREFIX)/lib/libpfm.so
@@ -118,6 +123,10 @@ ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 endif
 	-cd papiex; $(MAKE) distclean
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
+
+
+
+
 
 #
 # Docker targets

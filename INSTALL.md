@@ -3,34 +3,37 @@ papiex - PAPI Execute
 
 Building with PAPI
 ------------------
-If you want to build with PAPI, please uncomment the -DHAVE_PAPI in the definition of the DEFINES variable in the Makefile. Please ensure you maintain the -DHAVE_MONITOR in that line as well.
+If you want to build with PAPI, please uncomment the `-DHAVE_PAPI` in the definition of the `DEFINES` variable in the `Makefile`. Please ensure you maintain the `-DHAVE_MONITOR` in that line as well.
 
 How to Build/Test - Native
 --------------------------
 
 This distribution honors the PREFIX and DESTDIR variables standardized by GNU/FSF software. 
-
+```
 $ make PREFIX=/path/to/install/dir install
+```
 
 To verify things are working:
-
+```
 $ make PREFIX=/path/to/install/dir check
+```
 
-The output of the above test will move the data into ./sample-data.build
+The output of the above test will move the data into `./sample-data.build`
 
 How to Build/Test - Docker
 --------------------------
 
-The default target is OS_TARGET=centos-7. If you want something else, then specify it on the make line. 
-
+The default target is `OS_TARGET=centos-7`. If you want something else, then specify it on the make line. 
+```
 $ make docker-dist
 $ make docker-test-dist
+```
 
-See Makefile and Dockerfiles directory for other platforms, note only Centos-7 is maintained, so you'll need to port the other Dockerfiles. 
+See `Makefile` and `Dockerfiles/` directory for other platforms, you'll need to port the code to other Dockerfiles if the target OS you want is not present. 
 
 Output of make check
 --------------------
-
+```
 # make PREFIX=/usr/papi check  
 cd papiex; make PREFIX=/usr/papi LIBPAPIEX=/usr/papi/lib/libpapiex.so check
 make[1]: Entering directory '/Users/phil/Work/papiex-oss/papiex'
@@ -42,8 +45,10 @@ cd tests; ./test.sh
 Testing papi with PERF_COUNT_SW_CPU_CLOCK...
 /usr/papi/bin/papi_command_line PERF_COUNT_SW_CPU_CLOCK: PASS(0)
 0 errors.
+```
 
 Testing tagged runs...
+```
 sleep 1: PASS(0)
 ps -fade: PASS(0)
 host google.com: PASS(0)
@@ -71,3 +76,4 @@ gfortran -fopenmp fft_openmp.f90 -o fft_openmp: PASS(0)
 make[2]: Leaving directory '/Users/phil/Work/papiex-oss/papiex/x86_64-Linux'
 make[1]: Leaving directory '/Users/phil/Work/papiex-oss/papiex'
 ln -s /usr/papi/tmp ./sample-data.build
+```
