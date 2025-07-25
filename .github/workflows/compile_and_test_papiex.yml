@@ -1,61 +1,60 @@
-name: compile_and_test_papiex                                                                                                                                                               
-                                                                                                                                                                                        
-on:                                                                                                                                                                                     
-  push                                                                                                                                                                                  
-                                                                                                                                                                                  
-# cancel running jobs if theres a newer push                                                                                                                                            
-concurrency:                                                                                                                                                                            
-  group: ${{ github.workflow }}-${{ github.ref }}                                                                                                                                       
-  cancel-in-progress: true                                                                                                                                                              
-                                                                                                                                                                                        
-                                                                                                                                                                                        
-jobs:                                                                                                                                                                                   
-  build-linux:                                                                                                                                                                          
-    runs-on: ubuntu-latest                                                                                                                                                              
-                                                                                                                                                                                        
-    #service:                                                                                                                                                                           
-    #  - postgres:latest                                                                                                                                                                
-                                                                                                                                                                                        
-    container:                                                                                                                                                                          
-      image: rockylinux:8                                                                                                                                                               
-      options: --privileged                                                                                                                                                         
-                                                                                                                                                                                        
-    steps:                                                                                                                                                                              
-      - uses: actions/checkout@v4                                                                                                                                                       
-      - name: build env with yum install and update                                                                                                                                                    
-        run: |                                                                                                                                                                          
-          yum update -y                                                                                                                                                                 
+name: compile_and_test_papiex
+
+on:
+  push
+
+# cancel running jobs if theres a newer push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    #service:
+    #  - postgres:latest
+
+    container:
+      image: rockylinux:8
+      options: --privileged
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: build env with yum install and update
+        run: |
+          yum update -y
           yum install -y gcc make file findutils
 
-      - name: compile papiex                                                                                                                                               
-        run: |                                                                                                                                                                          
+      - name: compile papiex
+        run: |
           mkdir /build
-          make OS_TARGET=rocky-8 distclean install dist dist-test                                                                                                                       
+          make OS_TARGET=rocky-8 distclean install dist dist-test
 
       - name: setup test env after compiling with more yum etc
         run: |
           yum install -y gcc-c++ gcc-gfortran perl python3
           yum install -y tcsh bind-utils openssh-clients openssh-server
           yum install -y tcl environment-modules git
+
+      - name: config test ssh host keys
+        run: |
           mkdir /var/run/sshd
           echo -e "ForwardX11 no\nStrictHostKeyChecking no\nPreferredAuthentications publickey" >> /etc/ssh/ssh_config
-
-      - name: ssh host keys                                   
-        run: |          
           # Generate SSH host keys without a passphrase for testing purposes only.
           # This is acceptable in this controlled test environment as the image is not used in production.
           ls ~/.ssh && echo ".ssh dir exists!" || echo ".ssh dir does not exist!"
-          mkdir ~/.ssh && echo ".ssh dir created!" || echo ".ssh dir could not be created but its OK!"          
-          ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' 
-          ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N "" 
-          cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys 
+          mkdir ~/.ssh && echo ".ssh dir created!" || echo ".ssh dir could not be created but its OK!"
+          ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ''
+          ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
+          cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
 
       - name: configure csh user
         run: |
           # Configure csh user allow root to log in to them
           useradd -m -s /bin/csh -pfoo cshuser
-          mkdir ~cshuser/.ssh  
+          mkdir ~cshuser/.ssh
           cp ~/.ssh/authorized_keys ~cshuser/.ssh/authorized_keys
           chmod 700 ~cshuser/.ssh/
           chmod 600 ~cshuser/.ssh/authorized_keys
@@ -65,21 +64,22 @@ jobs:
         run: |
           # Configure tcsh user
           useradd -m -s /usr/bin/tcsh -pfoo tcshuser
-          mkdir ~tcshuser/.ssh 
-          cp ~/.ssh/authorized_keys ~tcshuser/.ssh/authorized_keys 
-          chmod 700 ~tcshuser/.ssh/ 
-          chmod 600 ~tcshuser/.ssh/authorized_keys 
+          mkdir ~tcshuser/.ssh
+          cp ~/.ssh/authorized_keys ~tcshuser/.ssh/authorized_keys
+          chmod 700 ~tcshuser/.ssh/
+          chmod 600 ~tcshuser/.ssh/authorized_keys
           chown -R tcshuser ~tcshuser/.ssh
 
-      - name: make check papiex                                   
+      - name: setup proc sys control
         run: |
           # Setup the environment, daemons and run the test script
           touch /tmp/init.sh
-          echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh 
+          echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh
+          cat /tmp/init.sh
           /bin/bash /tmp/init.sh
           bash papiex/src/tests/test.sh
 
-      - name: make check papiex                                   
+      - name: instructions i dont have much hope for but lets see                      
         run: |
           # Install papiex and papiex tester
           set release=papiex-epmt-2.0.0.tgz
@@ -88,8 +88,8 @@ jobs:
           test-${release} .
           mkdir --parents /home/tests
           export PAPIEX_PREFIX=/opt/epmt/papiex-epmt-install
-          
-      - name: make check papiex                                                                                                                                               
-        run: |                                                                                                                                                                          
+
+      - name: make check papiex
+        run: |
+          echo 2 > /proc/sys/kernel/perf_event_paranoid
           make OS_TARGET=rocky-8 check
-          
