@@ -82,10 +82,10 @@ jobs:
       - name: instructions i dont have much hope for but lets see                      
         run: |
           # Install papiex and papiex tester
-          set release=papiex-epmt-2.0.0.tgz
+          set release=papiex-epmt-2.3.14.tgz
           mkdir --parents /opt/epmt
-          mv ${release} /opt/epmt/
-          test-${release} .
+          mv papiex-epmt-2.3.14.tgz /opt/epmt/
+          test-papiex-epmt-2.3.14.tgz .
           mkdir --parents /home/tests
           export PAPIEX_PREFIX=/opt/epmt/papiex-epmt-install
 
