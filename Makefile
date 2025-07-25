@@ -111,7 +111,7 @@ endif
 
 $(RELEASE) test-$(RELEASE) docker-dist:
 	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
+	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
 	docker build -f Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
