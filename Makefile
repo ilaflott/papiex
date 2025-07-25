@@ -100,9 +100,9 @@ endif
 	-cd papiex; $(MAKE) distclean
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
 
+DOCKER_BUILD:=docker build -f
 # if on m-chip mac... use this
-DOCKER_BUILD:=docker build --platform linux/x86_64 -f
-#DOCKER_BUILD:=docker build -f
+#DOCKER_BUILD:=docker build --platform linux/x86_64 -f
 
 #
 # Docker targets
