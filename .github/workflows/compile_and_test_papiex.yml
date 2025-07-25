@@ -78,15 +78,13 @@ jobs:
           cat /tmp/init.sh
 
       - name: run init.sh and call tests
+        run: |
           echo "what shell is it again??"
-          echo $SHELL
-          echo ""
-          echo "calling /tmp/init.sh
-          /bin/bash /tmp/init.sh
-          echo ""
+          echo $SHELL && echo ""
+          echo "calling /tmp/init.sh"
+          /bin/bash /tmp/init.sh &&  echo ""
           echo "calling the test in bash"
-          bash papiex/src/tests/test.sh
-          echo ""
+          bash papiex/src/tests/test.sh && echo ""
 
       - name: make check papiex (see what this does...)
         run: |
