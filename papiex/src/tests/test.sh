@@ -96,7 +96,9 @@ declare -a shells=(
     "csh -f -c 'sleep 1'"
     "tcsh -f evilcsh.csh"
     "csh -f evilcsh.csh"
-    "bash toughonetwothree.sh"
+    "/usr/bin/tclsh8.5 toughone.tcl"
+    "/usr/bin/tclsh8.5 toughtwo.tcl"
+    "bash toughthree.sh"
     "git clone https://github.com/NOAA-GFDL/mkmf.git"
     "rm -rf mkmf"
 )
@@ -104,7 +106,6 @@ declare -a sieves=(
     "bash --noprofile sieve.sh 100"
     "tcsh -f sieve.csh 100"
     "csh -f sieve.csh 100" 
-    "python2 sieve.py"
     "python3 sieve.py"
     "perl sieve.pl"
 )
