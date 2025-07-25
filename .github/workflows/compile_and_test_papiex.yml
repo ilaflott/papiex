@@ -70,14 +70,28 @@ jobs:
           chmod 600 ~tcshuser/.ssh/authorized_keys
           chown -R tcshuser ~tcshuser/.ssh
 
-      - name: setup proc sys control
+      - name: create init.sh and print to screen
         run: |
           # Setup the environment, daemons and run the test script
           touch /tmp/init.sh
           echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh
           cat /tmp/init.sh
+
+      - name: run init.sh and call tests
+          echo "what shell is it again??"
+          echo $SHELL
+          echo ""
+          echo "calling /tmp/init.sh
           /bin/bash /tmp/init.sh
+          echo ""
+          echo "calling the test in bash"
           bash papiex/src/tests/test.sh
+          echo ""
+
+      - name: make check papiex (see what this does...)
+        run: |
+          echo 2 > /proc/sys/kernel/perf_event_paranoid
+          make OS_TARGET=rocky-8 check
 
       - name: instructions i dont have much hope for but lets see                      
         run: |
@@ -89,7 +103,4 @@ jobs:
           mkdir --parents /home/tests
           export PAPIEX_PREFIX=/opt/epmt/papiex-epmt-install
 
-      - name: make check papiex
-        run: |
-          echo 2 > /proc/sys/kernel/perf_event_paranoid
-          make OS_TARGET=rocky-8 check
+
