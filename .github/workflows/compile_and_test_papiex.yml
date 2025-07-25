@@ -77,28 +77,17 @@ jobs:
           echo -e "#!/bin/bash\nmount -o remount rw /proc\nsysctl -w kernel.perf_event_paranoid=0\n/usr/sbin/sshd\n\$*" > /tmp/init.sh && chmod 755 /tmp/init.sh
           cat /tmp/init.sh
 
-      - name: run init.sh and call tests
-        run: |
-          echo "what shell is it again??"
-          echo $SHELL && echo ""
-          echo "calling /tmp/init.sh"
-          /bin/bash /tmp/init.sh &&  echo ""
-          echo "calling the test in bash"
-          bash papiex/src/tests/test.sh && echo ""
-
-      - name: make check papiex (see what this does...)
+      - name: make check papiex (redundant with below?)
         run: |
           echo 2 > /proc/sys/kernel/perf_event_paranoid
           make OS_TARGET=rocky-8 check
 
-      - name: instructions i dont have much hope for but lets see                      
+      - name: run init.sh and call tests
         run: |
-          # Install papiex and papiex tester
-          set release=papiex-epmt-2.3.14.tgz
-          mkdir --parents /opt/epmt
-          mv papiex-epmt-2.3.14.tgz /opt/epmt/
-          test-papiex-epmt-2.3.14.tgz .
-          mkdir --parents /home/tests
-          export PAPIEX_PREFIX=/opt/epmt/papiex-epmt-install
+          echo "sourcing /tmp/init.sh and running test.sh"
+          source /tmp/init.sh && papiex/src/tests/test.sh
+
+
+
 
 
