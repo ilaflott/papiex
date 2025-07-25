@@ -22,18 +22,18 @@ fi
 
 PAPIEX_OPTIONS=${PAPIEX_OPTIONS:-COLLATED_TSV,PERF_COUNT_SW_CPU_CLOCK}
 
-PAPIEX_OUTPUT="/tmp"
+PAPIEX_OUTPUT="/tmp/"
 if [ ! -d ${PAPIEX_OUTPUT} ]; then
     echo -e "${RED}${PAPIEX_OUTPUT} does not exist or is not readable.${NC}"
     exit 1
 fi
 TEST_OUTPUT_DATADIR="${TEST_OUTPUT_DATADIR:-${PAPIEX_PREFIX}/tmp}"
 if [[ ! $PAPIEX_OPTIONS =~ COLLATED_TSV ]] ; then
-    TMP_OUTPUT_PATTERN="${PAPIEX_OUTPUT}/*-papiex-*.csv"
+    TMP_OUTPUT_PATTERN="${PAPIEX_OUTPUT}*-papiex-*.csv"
     rm -f $TMP_OUTPUT_PATTERN
 else
-    TMP_OUTPUT_PATTERN="${PAPIEX_OUTPUT}/*-papiex.tsv"
-    TMP_OUTPUT_HEADER_PATTERN="${PAPIEX_OUTPUT}/*-papiex-header.tsv"
+    TMP_OUTPUT_PATTERN="${PAPIEX_OUTPUT}*-papiex.tsv"
+    TMP_OUTPUT_HEADER_PATTERN="${PAPIEX_OUTPUT}*-papiex-header.tsv"
     rm -f $TMP_OUTPUT_PATTERN $TMP_OUTPUT_HEADER_PATTERN
 fi
 
@@ -49,7 +49,7 @@ if [ ! -d ${PAPIEX_PREFIX}/lib ]; then
 fi
 
 preload_libraries=${PAPIEX_PREFIX}/lib/libpapiex.so:${PAPIEX_PREFIX}/lib/libmonitor.so
-PAPIEX="PAPIEX_OUTPUT=${PAPIEX_OUTPUT} PAPIEX_OPTIONS=${PAPIEX_OPTIONS} LD_PRELOAD=$preload_libraries"
+PAPIEX="PAPIEX_OUTPUT=${PAPIEX_OUTPUT} PAPIEX_OPTIONS=${PAPIEX_OPTIONS} LD_PRELOAD=${preload_libraries}"
 
 no_papi=0
 err=0
@@ -96,8 +96,8 @@ declare -a shells=(
     "csh -f -c 'sleep 1'"
     "tcsh -f evilcsh.csh"
     "csh -f evilcsh.csh"
-    "/usr/bin/tclsh8.5 toughone.tcl"
-    "/usr/bin/tclsh8.5 toughtwo.tcl"
+    "tclsh toughone.tcl"
+    "tclsh toughtwo.tcl"
     "bash toughthree.sh"
     "git clone https://github.com/NOAA-GFDL/mkmf.git"
     "rm -rf mkmf"
@@ -544,7 +544,9 @@ echo "Temp output pattern: ${TMP_OUTPUT_PATTERN}"
 echo "Test output data dir: ${TEST_OUTPUT_DATADIR}"
 echo "Environment: PAPIEX_PREFIX=${PAPIEX_PREFIX}"
 echo "Environment: PAPIEX_OPTIONS=${PAPIEX_OPTIONS}"
-check_papi_is_working
+echo "Environment: PAPIEX_OUTPUT=${PAPIEX_OUTPUT}"
+echo "Environment: LD_PRELOAD=${preload_libraries}"
+echo "Command line: ${PAPIEX} <command>"
 #echo "Invocation: ${PAPIEX}"
 echo "-- Test Data --"
 test_tags

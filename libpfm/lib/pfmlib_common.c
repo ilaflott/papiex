@@ -78,7 +78,12 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&amd64_fam15h_interlagos_support,
 	&amd64_fam15h_nb_support,
 	&amd64_fam16h_support,
-	&amd64_fam17h_support,
+	&amd64_fam17h_deprecated_support,
+	&amd64_fam17h_zen1_support,
+	&amd64_fam17h_zen2_support,
+	&amd64_fam19h_zen3_support,
+	&amd64_fam19h_zen3_l3_support,
+	&amd64_rapl_support,
 	&intel_core_support,
 	&intel_atom_support,
 	&intel_nhm_support,
@@ -106,6 +111,9 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_skl_support,
 	&intel_skx_support,
 	&intel_clx_support,
+	&intel_icl_support,
+	&intel_icx_support,
+	&intel_spr_support,
 	&intel_rapl_support,
 	&intel_snbep_unc_cb0_support,
 	&intel_snbep_unc_cb1_support,
@@ -130,6 +138,7 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_knc_support,
 	&intel_slm_support,
 	&intel_glm_support,
+	&intel_tmt_support,
 	&intel_ivbep_unc_cb0_support,
 	&intel_ivbep_unc_cb1_support,
 	&intel_ivbep_unc_cb2_support,
@@ -454,6 +463,7 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&power7_support,
 	&power8_support,
 	&power9_support,
+	&power10_support,
 	&torrent_support,
     &powerpc_nest_mcs_read_support,
     &powerpc_nest_mcs_write_support,
@@ -484,12 +494,143 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_cortex_a53_support,
 	&arm_xgene_support,
 	&arm_thunderx2_support,
+	&arm_thunderx2_dmc0_support,
+	&arm_thunderx2_dmc1_support,
+	&arm_thunderx2_llc0_support,
+	&arm_thunderx2_llc1_support,
+	&arm_thunderx2_ccpi0_support,
+	&arm_thunderx2_ccpi1_support,
+	&arm_n1_support,
+	&arm_n2_support,
+	&arm_hisilicon_kunpeng_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl1_hha2_support,
+	&arm_hisilicon_kunpeng_sccl1_hha3_support,
+	&arm_hisilicon_kunpeng_sccl3_hha0_support,
+	&arm_hisilicon_kunpeng_sccl3_hha1_support,
+	&arm_hisilicon_kunpeng_sccl5_hha6_support,
+	&arm_hisilicon_kunpeng_sccl5_hha7_support,
+	&arm_hisilicon_kunpeng_sccl7_hha4_support,
+	&arm_hisilicon_kunpeng_sccl7_hha5_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c10_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c11_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c12_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c13_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c14_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c15_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c8_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c9_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c0_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c1_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c2_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c3_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c4_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c5_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c6_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c7_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c24_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c25_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c26_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c27_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c28_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c29_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c30_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c31_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c16_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c17_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c18_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c19_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c20_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c21_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c22_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c23_support,
 #endif
 #ifdef CONFIG_PFMLIB_ARCH_ARM64
 	&arm_cortex_a57_support,
 	&arm_cortex_a53_support,
 	&arm_xgene_support,
 	&arm_thunderx2_support,
+	&arm_thunderx2_dmc0_support,
+	&arm_thunderx2_dmc1_support,
+	&arm_thunderx2_llc0_support,
+	&arm_thunderx2_llc1_support,
+	&arm_thunderx2_ccpi0_support,
+	&arm_thunderx2_ccpi1_support,
+	&arm_fujitsu_a64fx_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl1_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl3_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl5_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc0_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc1_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc2_support,
+	&arm_hisilicon_kunpeng_sccl7_ddrc3_support,
+	&arm_hisilicon_kunpeng_sccl1_hha2_support,
+	&arm_hisilicon_kunpeng_sccl1_hha3_support,
+	&arm_hisilicon_kunpeng_sccl3_hha0_support,
+	&arm_hisilicon_kunpeng_sccl3_hha1_support,
+	&arm_hisilicon_kunpeng_sccl5_hha6_support,
+	&arm_hisilicon_kunpeng_sccl5_hha7_support,
+	&arm_hisilicon_kunpeng_sccl7_hha4_support,
+	&arm_hisilicon_kunpeng_sccl7_hha5_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c10_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c11_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c12_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c13_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c14_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c15_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c8_support,
+	&arm_hisilicon_kunpeng_sccl1_l3c9_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c0_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c1_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c2_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c3_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c4_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c5_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c6_support,
+	&arm_hisilicon_kunpeng_sccl3_l3c7_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c24_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c25_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c26_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c27_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c28_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c29_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c30_support,
+	&arm_hisilicon_kunpeng_sccl5_l3c31_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c16_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c17_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c18_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c19_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c20_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c21_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c22_support,
+	&arm_hisilicon_kunpeng_sccl7_l3c23_support,
+	&arm_n1_support,
+	&arm_n2_support,
+	&arm_hisilicon_kunpeng_support,
 #endif
 
 #ifdef CONFIG_PFMLIB_ARCH_S390X
@@ -525,6 +666,30 @@ static pfmlib_os_t *pfmlib_oses[]={
  */
 static pfmlib_pmu_t *pfmlib_pmus_map[PFM_PMU_MAX];
 
+/*
+ * A drop-in replacement for strsep(). strsep() is not part of the POSIX
+ * standard, and it is not available on all platforms - in particular it is not
+ * provided by Microsoft's C runtime or by MinGW.
+ */
+static char* pfmlib_strsep(char **stringp, const char *delim)
+{
+	char* token = *stringp;
+	char* end = *stringp;
+
+	if (!end)
+		return NULL;
+
+	while (*end && !strchr(delim, *end))
+		end++;
+
+	if (*end) {
+		*end = '\0';
+		*stringp = end + 1;
+	} else {
+		*stringp = NULL;
+	}
+	return token;
+}
 
 #define pfmlib_for_each_pmu_event(p, e) \
 	for(e=(p)->get_event_first((p)); e != -1; e = (p)->get_event_next((p), e))
@@ -698,6 +863,12 @@ static inline int
 pfmlib_pmu_active(pfmlib_pmu_t *pmu)
 {
         return !!(pmu->flags & PFMLIB_PMU_FL_ACTIVE);
+}
+
+static inline int
+pfmlib_pmu_deprecated(pfmlib_pmu_t *pmu)
+{
+        return !!(pmu->flags & PFMLIB_PMU_FL_DEPR);
 }
 
 static inline int
@@ -1148,7 +1319,7 @@ pfmlib_parse_event_attr(char *str, pfmlib_event_desc_t *d)
 
 	while(s) {
 	        p = s;
-	        strsep(&p, PFMLIB_ATTR_DELIM);
+	        pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 		/* if (p)
 		 *p++ = '\0'; */
 
@@ -1332,7 +1503,7 @@ pfmlib_build_event_pattrs(pfmlib_event_desc_t  *e)
 		npattrs++;
 
 	if (npattrs) {
-		e->pattrs = malloc(npattrs * sizeof(*e->pattrs));
+		e->pattrs = calloc(npattrs, sizeof(*e->pattrs));
 		if (!e->pattrs)
 			return PFM_ERR_NOMEM;
 	}
@@ -1355,8 +1526,8 @@ pfmlib_build_event_pattrs(pfmlib_event_desc_t  *e)
 				pmu->validate_pattrs[e->osid](pmu, e);
 		}
 	}
-	for (i = 0; i < e->npattrs; i++)
-		DPRINT("%d %d %d %d %d %s\n", e->event, i, e->pattrs[i].type, e->pattrs[i].ctrl, e->pattrs[i].idx, e->pattrs[i].name);
+	for (i = 0; i < e->npattrs; i++) {
+	  DPRINT("%d %d %d %d %d %s\n", e->event, i, e->pattrs[i].type, e->pattrs[i].ctrl, e->pattrs[i].idx, e->pattrs[i].name); }
 
 	return PFM_SUCCESS;
 error:
@@ -1396,7 +1567,7 @@ pfmlib_parse_equiv_event(const char *event, pfmlib_event_desc_t *d)
 		return PFM_ERR_NOMEM;
 
 	p = s;
-	strsep(&p, PFMLIB_ATTR_DELIM);
+	pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 	/* if (p)
 	 *p++ = '\0'; */
 
@@ -1468,7 +1639,7 @@ pfmlib_parse_event(const char *event, pfmlib_event_desc_t *d)
 		s = p + strlen(PFMLIB_PMU_DELIM);
 	}
 	p = s;
-	strsep(&p, PFMLIB_ATTR_DELIM);
+	pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 	/* if (p)
 	 *p++ = '\0'; */
 
@@ -1482,6 +1653,14 @@ pfmlib_parse_event(const char *event, pfmlib_event_desc_t *d)
 		 * only look for active PMU models
 		 */
 		if (!pname && !pfmlib_pmu_active(pmu))
+			continue;
+
+		/*
+		 * if the PMU name is not passed, then if
+		 * the pmu is deprecated, then skip it. It means
+		 * there is a better candidate in the active list
+		 */
+		if (!pname && pfmlib_pmu_deprecated(pmu))
 			continue;
 		/*
 		 * check for requested PMU name,
@@ -1534,10 +1713,10 @@ found:
 
 	for (i = 0; i < d->nattrs; i++) {
 		pfmlib_event_attr_info_t *a = attr(d, i);
-		if (a->type != PFM_ATTR_RAW_UMASK)
-			DPRINT("%d %d %d %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name);
-		else
-			DPRINT("%d %d RAW_UMASK (0x%x)\n", d->event, i, a->idx);
+		if (a->type != PFM_ATTR_RAW_UMASK) {
+		  DPRINT("%d %d %d %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name); }
+		else {
+		  DPRINT("%d %d RAW_UMASK (0x%x)\n", d->event, i, a->idx); }
 	}
 error:
 	free(str);
@@ -1950,8 +2129,8 @@ pfm_get_event_info(int idx, pfm_os_t os, pfm_event_info_t *uinfo)
 	/* default data type is uint64 */
 	info.dtype = PFM_DTYPE_UINT64;
 
-	/* reset flags */
-	info.is_precise = 0;
+	/* initialize flags */
+	info.is_speculative = PFM_EVENT_INFO_SPEC_NA;
 
 	ret = pmu->get_event_info(pmu, pidx, &info);
 	if (ret != PFM_SUCCESS)
@@ -1978,10 +2157,10 @@ pfm_get_event_info(int idx, pfm_os_t os, pfm_event_info_t *uinfo)
 int
 pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_t *uinfo)
 {
-	pfmlib_event_attr_info_t info;
+	pfmlib_event_attr_info_t *info;
 	pfmlib_event_desc_t e;
 	pfmlib_pmu_t *pmu;
-	size_t sz = sizeof(info);
+	size_t sz = sizeof(*info);
 	int pidx, ret;
 
 	if (!PFMLIB_INITIALIZED())
@@ -2018,10 +2197,7 @@ pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_
 	if (attr_idx >= e.npattrs)
 		goto error;
 
-	/*
-	 * copy event_attr_info
-	 */
-	info = e.pattrs[attr_idx];
+	info = &e.pattrs[attr_idx];
 
 	/*
 	 * info.idx = private, namespace specific index,
@@ -2031,18 +2207,20 @@ pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_
 	 * cannot memcpy() info into uinfo as they do not
 	 * have the same size, cf. idx field (uint64 vs, uint32)
 	 */
-	uinfo->name  = info.name;
-	uinfo->desc  = info.desc;
-	uinfo->equiv = info.equiv;
+	uinfo->name  = info->name;
+	uinfo->desc  = info->desc;
+	uinfo->equiv = info->equiv;
 	uinfo->size  = sz;
-	uinfo->code  = info.code;
-	uinfo->type  = info.type;
+	uinfo->code  = info->code;
+	uinfo->type  = info->type;
 	uinfo->idx   = attr_idx;
-	uinfo->ctrl  = info.ctrl;
-	uinfo->is_dfl= info.is_dfl;
-	uinfo->is_precise = info.is_precise;
+	uinfo->ctrl  = info->ctrl;
+	uinfo->is_dfl= info->is_dfl;
+	uinfo->is_precise = info->is_precise;
+	uinfo->is_speculative = info->is_speculative;
+	uinfo->support_hw_smpl = info->support_hw_smpl;
 	uinfo->reserved_bits = 0;
-	uinfo->dfl_val64 = info.dfl_val64;
+	uinfo->dfl_val64 = info->dfl_val64;
 
 	ret = PFM_SUCCESS;
 error:

@@ -65,13 +65,13 @@ tar: clean
 	ln -s $$PWD ../$(PKG) && cd .. &&  $(TAR) -zcf $(TARBALL) $(PKG)/. && rm $(PKG)
 	@echo generated ../$(TARBALL)
 
-install-lib: 
+install-lib:
 	@echo installing in $(DESTDIR)$(PREFIX)
 	@$(MAKE) -C lib install
-install install-all: 
+install install-all:
 	@echo installing in $(DESTDIR)$(PREFIX)
 	@set -e ; for d in $(DIRS) ; do $(MAKE) -C $$d install ; done
-install-examples:
+install-examples install_examples:
 	@echo installing in $(DESTDIR)$(PREFIX)
 	@set -e ; for d in $(EXAMPLE_DIRS) ; do $(MAKE) -C $$d $@ ; done
 
@@ -82,6 +82,6 @@ tags:
 static:
 	make all CONFIG_PFMLIB_SHARED=n
 
-.PHONY: all clean distclean depend tar install install-all install-lib install-examples lib static
+.PHONY: all clean distclean depend tar install install-all install-lib install-examples lib static install_examples
 
 # DO NOT DELETE

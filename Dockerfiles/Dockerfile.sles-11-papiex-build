@@ -1,8 +1,0 @@
-FROM mstormo/suse:latest
-
-#RUN zypper --non-interactive --no-gpg-checks update
-RUN zypper --non-interactive --no-gpg-checks install gcc make file tar gzip
-RUN zypper --non-interactive --no-gpg-checks install awk
-RUN zypper --non-interactive clean -a
-
-

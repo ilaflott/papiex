@@ -30,7 +30,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":WRITE:ACCESS"\
        },\
        {\
@@ -39,7 +39,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":WRITE:MISS"\
        }
 
@@ -50,7 +50,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":PREFETCH:ACCESS"\
        },\
        {\
@@ -59,7 +59,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":PREFETCH:MISS"\
        }
 
@@ -71,7 +71,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":READ:ACCESS"\
        },\
        {\
@@ -80,7 +80,7 @@
 	.id   = PERF_COUNT_HW_CACHE_##e,\
 	.type = PERF_TYPE_HW_CACHE,\
 	.modmsk = PERF_ATTR_HW,\
-	.umask_ovfl_idx = -1,\
+	.umask_ovfl_idx = ~0UL,\
 	.equiv = "PERF_COUNT_HW_CACHE_"#e":READ:MISS"\
        }
 
@@ -151,6 +151,10 @@ static perf_event_t perf_static_events[]={
 
         PCL_EVT_SW(PAGE_FAULTS_MAJ),
         PCL_EVT_ASW(MAJOR-FAULTS, PAGE_FAULTS_MAJ),
+
+	PCL_EVT_SW(CGROUP_SWITCHES),
+	PCL_EVT_ASW(CGROUP-SWITCHES, CGROUP_SWITCHES),
+
 	{
 	.name = "PERF_COUNT_HW_CACHE_L1D",
 	.desc = "L1 data cache",
@@ -158,7 +162,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 5,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -198,7 +202,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 4,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -233,7 +237,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 5,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -273,7 +277,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 5,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -313,7 +317,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 3,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -343,7 +347,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 3,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -373,7 +377,7 @@ static perf_event_t perf_static_events[]={
 	.type = PERF_TYPE_HW_CACHE,
 	.numasks = 5,
 	.modmsk = PERF_ATTR_HW,
-	.umask_ovfl_idx = -1,
+	.umask_ovfl_idx = ~0UL,
 	.ngrp = 2,
 	.umasks = {
 		{ .uname = "READ",
@@ -408,3 +412,15 @@ static perf_event_t perf_static_events[]={
        CACHE_ACCESS(NODE, "Node ", NODE)
 };
 #define PME_PERF_EVENT_COUNT (sizeof(perf_static_events)/sizeof(perf_event_t))
+
+/*
+ * the following events depend on the kernel exporting them. They may be dependent on hardware features
+ */
+static perf_event_t perf_optional_events[]={
+       PCL_EVT_RAW(slots, 0x00, 0x04, "issue slots per logical CPU (used for topdown toplevel computation, must be first event in the group)"),
+       PCL_EVT_RAW(topdown-retiring, 0x00, 0x80, "topdown useful slots retiring uops (must be used in a group with the other topdown- events with slots as leader)"),
+       PCL_EVT_RAW(topdown-bad-spec, 0x00, 0x81, "topdown wasted slots due to bad speculation (must be used in a group with the other topdown- events with slots as leader)"),
+       PCL_EVT_RAW(topdown-fe-bound, 0x00, 0x82, "topdown wasted slots due to frontend (must be used in a group with the other topdown- events with slots as leader)"),
+       PCL_EVT_RAW(topdown-be-bound, 0x00, 0x83, "topdown wasted slots due to backend (must be used in a group with the other topdown- events with slots as leader)"),
+};
+#define PME_PERF_EVENT_OPT_COUNT (sizeof(perf_optional_events)/sizeof(perf_event_t))

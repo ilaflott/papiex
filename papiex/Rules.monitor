@@ -1,8 +1,7 @@
-ifneq (,$(findstring HAVE_MONITOR,$(DEFINES)))
-	ifneq (,$(MONITOR_INC_PATH))
-		INCLUDES += -I$(MONITOR_INC_PATH)
-	endif
-	ifneq (,$(MONITOR_LIB_PATH))
-		LIBS += -Wl,-rpath -Wl,$(MONITOR_LIB_PATH) -L$(MONITOR_LIB_PATH) -lmonitor
-	endif
+ifneq (,$(MONITOR_INC_PATH))
+	INCLUDES += -I$(MONITOR_INC_PATH)
 endif
+ifneq (,$(MONITOR_LIB_PATH))
+	LIBS += -Wl,-rpath -Wl,$(MONITOR_LIB_PATH) -L$(MONITOR_LIB_PATH)
+endif
+LIBS += -lmonitor

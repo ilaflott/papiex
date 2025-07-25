@@ -82,6 +82,7 @@ int
 pfm_intel_x86_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 {
 	pfmlib_pmu_t *pmu = this;
+	pfm_intel_x86_reg_t reg;
 	struct perf_event_attr *attr = e->os_data;
 	int ret;
 
@@ -117,7 +118,20 @@ pfm_intel_x86_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 		}
 	}
 
-	attr->config = e->codes[0];
+	reg.val = e->codes[0];
+
+	/*
+	 * suppress the bits which are under the control of perf_events
+	 * they will be ignore by the perf tool and the kernel interface
+	 * the OS/USR bits are controlled by the attr.exclude_* fields
+	 * the EN/INT bits are controlled by the kernel
+	 */
+	reg.sel_en   = 0;
+	reg.sel_int  = 0;
+	reg.sel_os   = 0;
+	reg.sel_usr  = 0;
+
+	attr->config = reg.val;
 
 	if (e->count > 1) {
 		/*
@@ -262,6 +276,13 @@ intel_x86_event_has_pebs(void *this, pfmlib_event_desc_t *e)
 	return 0;
 }
 
+static int
+intel_x86_event_has_hws(void *this, pfmlib_event_desc_t *e)
+{
+	pfmlib_pmu_t *pmu = this;
+	return !!(pmu->flags & INTEL_X86_PMU_FL_EXTPEBS);
+}
+
 /*
  * remove attrs which are in conflicts (or duplicated) with os layer
  */
@@ -270,6 +291,7 @@ pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 {
 	pfmlib_pmu_t *pmu = this;
 	int i, compact;
+	int has_hws = intel_x86_event_has_hws(this, e);
 	int has_pebs = intel_x86_event_has_pebs(this, e);
 	int no_smpl = pmu->flags & PFMLIB_PMU_FL_NO_SMPL;
 
@@ -292,6 +314,10 @@ pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 
 			/* Precise mode, subject to PEBS */
 			if (e->pattrs[i].idx == PERF_ATTR_PR && !has_pebs)
+				compact = 1;
+
+			/* hardware sampling mode, subject to HWS or PEBS */
+			if (e->pattrs[i].idx == PERF_ATTR_HWS && (!has_hws || has_pebs))
 				compact = 1;
 
 			/*

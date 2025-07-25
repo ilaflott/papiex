@@ -52,7 +52,6 @@ typedef struct {
  * which would not fit into the 8 bits reserved
  * in amd64_entry_t.flags or amd64_umask_t.flags
  */
-#define AMD64_FAM10H AMD64_FAM10H_REV_B
 typedef enum {
         AMD64_CPU_UN = 0,
         AMD64_K7,
@@ -65,9 +64,16 @@ typedef enum {
         AMD64_FAM10H_REV_B,
         AMD64_FAM10H_REV_C,
         AMD64_FAM10H_REV_D,
+        AMD64_FAM11H,
+        AMD64_FAM12H, /* first with Host/Guest filtering */
 
         AMD64_FAM14H_REV_B,
+        AMD64_FAM15H,
+        AMD64_FAM16H,
+        AMD64_FAM17H,
+        AMD64_FAM19H,
 } amd64_rev_t;
+#define AMD64_FAM10H AMD64_FAM10H_REV_B
 
 typedef struct {
         pfm_pmu_t		revision;
@@ -129,6 +135,7 @@ extern pfm_amd64_config_t pfm_amd64_cfg;
 #define AMD64_FAM14H_ATTRS		AMD64_FAM10H_ATTRS
 #define AMD64_FAM15H_ATTRS		AMD64_FAM10H_ATTRS
 #define AMD64_FAM17H_ATTRS		AMD64_FAM10H_ATTRS
+#define AMD64_FAM19H_ATTRS		AMD64_FAM10H_ATTRS
 
 #define AMD64_FAM10H_PLM	(PFM_PLM0|PFM_PLM3|PFM_PLMH)
 #define AMD64_K7_PLM		(PFM_PLM0|PFM_PLM3)
@@ -179,6 +186,21 @@ typedef union {
 		uint64_t val:1;
 		uint64_t reserved2:45;
 	} ibsop;
+	struct { /* Zen3 L3 */
+		uint64_t event:8;		/* event mask */
+		uint64_t umask:8;		/* unit mask */
+		uint64_t reserved1:6;		/* reserved */
+		uint64_t en:1;			/* enable */
+		uint64_t reserved2:19;		/* reserved */
+		uint64_t core_id:3;		/* Core ID */
+		uint64_t reserved3:1;		/* reserved */
+		uint64_t en_all_slices:1;	/* enable all slices */
+		uint64_t en_all_cores:1;	/* enable all cores */
+		uint64_t slice_id:3;		/* Slice ID */
+		uint64_t reserved4:5;		/* reserved */
+		uint64_t thread_id:4;		/* reserved */
+		uint64_t reserved5:4;		/* reserved */
+	} l3;
 } pfm_amd64_reg_t; /* MSR 0xc001000-0xc001003 */
 
 /* let's define some handy shortcuts! */
@@ -196,9 +218,6 @@ typedef union {
 #define sel_guest	perfsel.sel_guest
 #define sel_host	perfsel.sel_host
 
-#define IS_FAMILY_10H(p) (((pfmlib_pmu_t *)(p))->pmu_rev >= AMD64_FAM10H)
-#define IS_FAMILY_15H(p) (((pfmlib_pmu_t *)(p))->pmu == PFM_PMU_AMD64_FAM15H_INTERLAGOS)
-
 extern int pfm_amd64_get_encoding(void *this, pfmlib_event_desc_t *e);
 extern int pfm_amd64_get_event_first(void *this);
 extern int pfm_amd64_get_event_next(void *this, int idx);
@@ -215,4 +234,10 @@ extern int pfm_amd64_get_perf_encoding(void *this, pfmlib_event_desc_t *e);
 extern void pfm_amd64_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e);
 extern void pfm_amd64_nb_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e);
 extern int pfm_amd64_family_detect(void *this);
+
+static inline int pfm_amd64_supports_virt(pfmlib_pmu_t *pmu)
+{
+	return pmu->pmu_rev >= AMD64_FAM10H && pmu->pmu_rev != AMD64_FAM11H;
+}
+
 #endif /* __PFMLIB_AMD64_PRIV_H__ */

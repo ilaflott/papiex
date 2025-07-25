@@ -62,6 +62,8 @@ SRCS   += pfmlib_amd64.c pfmlib_intel_core.c pfmlib_intel_x86.c \
 	  pfmlib_intel_hsw.c \
 	  pfmlib_intel_bdw.c \
 	  pfmlib_intel_skl.c \
+	  pfmlib_intel_icl.c \
+	  pfmlib_intel_spr.c \
 	  pfmlib_intel_rapl.c \
 	  pfmlib_intel_snbep_unc.c \
 	  pfmlib_intel_snbep_unc_cbo.c \
@@ -112,6 +114,7 @@ SRCS   += pfmlib_amd64.c pfmlib_intel_core.c pfmlib_intel_x86.c \
 	  pfmlib_intel_skx_unc_upi.c \
 	  pfmlib_intel_knc.c \
 	  pfmlib_intel_slm.c \
+	  pfmlib_intel_tmt.c \
 	  pfmlib_intel_knl.c \
 	  pfmlib_intel_knl_unc_imc.c \
 	  pfmlib_intel_knl_unc_edc.c \
@@ -122,7 +125,9 @@ SRCS   += pfmlib_amd64.c pfmlib_intel_core.c pfmlib_intel_x86.c \
 	  pfmlib_amd64_k7.c pfmlib_amd64_k8.c pfmlib_amd64_fam10h.c \
 	  pfmlib_amd64_fam11h.c pfmlib_amd64_fam12h.c \
 	  pfmlib_amd64_fam14h.c pfmlib_amd64_fam15h.c \
-	  pfmlib_amd64_fam17h.c pfmlib_amd64_fam16h.c
+	  pfmlib_amd64_fam17h.c pfmlib_amd64_fam16h.c \
+	  pfmlib_amd64_fam19h.c pfmlib_amd64_rapl.c \
+	  pfmlib_amd64_fam19h_l3.c
 
 CFLAGS += -DCONFIG_PFMLIB_ARCH_X86
 
@@ -144,7 +149,9 @@ SRCS += pfmlib_powerpc_perf_event.c
 endif
 
 INCARCH = $(INC_POWERPC)
-SRCS   += pfmlib_powerpc.c pfmlib_power4.c pfmlib_ppc970.c pfmlib_power5.c pfmlib_power6.c pfmlib_power7.c pfmlib_torrent.c pfmlib_power8.c pfmlib_power9.c pfmlib_powerpc_nest.c
+SRCS   += pfmlib_powerpc.c pfmlib_power4.c pfmlib_ppc970.c pfmlib_power5.c \
+	pfmlib_power6.c pfmlib_power7.c pfmlib_torrent.c pfmlib_power8.c \
+	pfmlib_power9.c pfmlib_powerpc_nest.c pfmlib_power10.c
 CFLAGS += -DCONFIG_PFMLIB_ARCH_POWERPC
 endif
 
@@ -177,7 +184,7 @@ SRCS += pfmlib_arm_perf_event.c
 endif
 
 INCARCH = $(INC_ARM)
-SRCS   += pfmlib_arm.c pfmlib_arm_armv7_pmuv1.c pfmlib_arm_armv6.c pfmlib_arm_armv8.c
+SRCS   += pfmlib_arm.c pfmlib_arm_armv7_pmuv1.c pfmlib_arm_armv6.c pfmlib_arm_armv8.c pfmlib_tx2_unc_perf_event.c pfmlib_kunpeng_unc_perf_event.c
 CFLAGS += -DCONFIG_PFMLIB_ARCH_ARM
 endif
 
@@ -188,7 +195,7 @@ SRCS += pfmlib_arm_perf_event.c
 endif
 
 INCARCH = $(INC_ARM64)
-SRCS   += pfmlib_arm.c pfmlib_arm_armv8.c
+SRCS   += pfmlib_arm.c pfmlib_arm_armv8.c pfmlib_tx2_unc_perf_event.c pfmlib_kunpeng_unc_perf_event.c
 CFLAGS += -DCONFIG_PFMLIB_ARCH_ARM64
 endif
 
@@ -248,7 +255,10 @@ INC_X86= pfmlib_intel_x86_priv.h	\
 	events/amd64_events_fam12h.h	\
 	events/amd64_events_fam14h.h	\
 	events/amd64_events_fam15h.h	\
-	events/amd64_events_fam17h.h	\
+	events/amd64_events_fam17h_zen1.h \
+	events/amd64_events_fam17h_zen2.h \
+	events/amd64_events_fam19h_zen3.h \
+	events/amd64_events_fam19h_zen3_l3.h \
 	events/amd64_events_fam16h.h	\
 	events/intel_p6_events.h	\
 	events/intel_netburst_events.h	\
@@ -267,6 +277,8 @@ INC_X86= pfmlib_intel_x86_priv.h	\
 	events/intel_bdw_events.h	\
 	events/intel_skl_events.h	\
 	events/intel_glm_events.h	\
+	events/intel_icl_events.h	\
+	events/intel_spr_events.h	\
 	pfmlib_intel_snbep_unc_priv.h	\
 	events/intel_snbep_unc_cbo_events.h \
 	events/intel_snbep_unc_ha_events.h \
@@ -276,6 +288,7 @@ INC_X86= pfmlib_intel_x86_priv.h	\
 	events/intel_snbep_unc_ubo_events.h \
 	events/intel_snbep_unc_r2pcie_events.h \
 	events/intel_snbep_unc_r3qpi_events.h \
+	events/intel_tmt_events.h \
 	events/intel_knc_events.h \
 	events/intel_knl_events.h \
 	events/intel_ivbep_unc_cbo_events.h \
@@ -333,6 +346,7 @@ INC_POWERPC=events/ppc970_events.h	\
 	events/power7_events.h		\
 	events/power8_events.h		\
 	events/power9_events.h		\
+	events/power10_events.h		\
 	events/torrent_events.h		\
 	events/powerpc_nest_events.h
 
@@ -349,10 +363,6 @@ INC_SPARC=events/sparc_ultra12_events.h		\
 
 INC_CELL=events/cell_events.h
 
-INC_ARM=events/arm_cortex_a8_events.h		\
-        events/arm_cortex_a9_events.h		\
-        events/arm_arm_xgene_events.h
-
 INC_ARM=pfmlib_arm_priv.h			\
 	events/arm_cortex_a7_events.h		\
 	events/arm_cortex_a8_events.h		\
@@ -360,11 +370,25 @@ INC_ARM=pfmlib_arm_priv.h			\
 	events/arm_cortex_a15_events.h		\
 	events/arm_cortex_a57_events.h		\
 	events/arm_cortex_a53_events.h		\
-	events/arm_cavium_tx2_events.h
+        events/arm_xgene_events.h		\
+	events/arm_cavium_tx2_events.h		\
+	events/arm_marvell_tx2_unc_events.h	\
+	events/arm_neoverse_n1_events.h		\
+	events/arm_neoverse_n2_events.h		\
+	events/arm_hisilicon_kunpeng_events.h \
+	events/arm_hisilicon_kunpeng_unc_events.h
 
-INC_ARM64=events/arm_cortex_a57_events.h	\
-	  events/arm_cortex_a53_events.h	\
-	  events/arm_cavium_tx2_events.h
+INC_ARM64=pfmlib_arm_priv.h			\
+	events/arm_cortex_a57_events.h		\
+	events/arm_cortex_a53_events.h		\
+        events/arm_xgene_events.h		\
+	events/arm_cavium_tx2_events.h		\
+	events/arm_marvell_tx2_unc_events.h	\
+	events/arm_fujitsu_a64fx_events.h	\
+	events/arm_neoverse_n1_events.h		\
+	events/arm_neoverse_n2_events.h		\
+	events/arm_hisilicon_kunpeng_events.h \
+	events/arm_hisilicon_kunpeng_unc_events.h
 
 INCDEP=$(INC_COMMON) $(INCARCH)
 

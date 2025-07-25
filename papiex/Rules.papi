@@ -1,9 +1,10 @@
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	ifneq (,$(PAPI_INC_PATH))
 		INCLUDES += -I$(PAPI_INC_PATH)
 	endif
 	ifneq (,$(PAPI_LIB_PATH))
-		LIBS += -Wl,-rpath -Wl,$(PAPI_LIB_PATH) -L$(PAPI_LIB_PATH) -lpapi
+		LIBS += -Wl,-rpath -Wl,$(PAPI_LIB_PATH) -L$(PAPI_LIB_PATH)
 	endif
+	LIBS += -lpapi
 endif
 

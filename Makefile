@@ -1,14 +1,24 @@
 OS_TARGET?=centos-7
 # Please sync with papiex/Makefile
-VERSION=2.3.14
+VERSION=2.3.15
 # Please sync with papiex/Makefile
 RELEASE=papiex-epmt-$(VERSION)-$(OS_TARGET).tgz
 #
-DEFINES=-DHAVE_MONITOR -DHAVE_PAPI
+CONFIG_PAPIEX_DEBUG?=y
+CONFIG_PAPIEX_PAPI?=n
 #
 SHELL = /bin/bash
 CC := gcc
 OCC := $(CC)
+DOCKER_RUN:=docker run
+DOCKER_BUILD:=docker build -f
+DOCKER_RUN_OPTS:=--rm -it
+#
+## if on m-chip mac... use this - Ian
+#DOCKER_RUN:=docker run 
+#DOCKER_BUILD:=docker build --platform linux/x86_64 -f
+#DOCKER_RUN_OPTS:=--rm -it --platform linux/x86_64
+#
 PREFIX := $(shell pwd)/papiex-epmt-install
 LIBMONITOR := $(DESTDIR)$(PREFIX)/lib/libmonitor.so
 LIBPFM := $(DESTDIR)$(PREFIX)/lib/libpfm.so
@@ -16,7 +26,7 @@ LIBPAPI := $(DESTDIR)$(PREFIX)/lib/libpapi.so
 LIBPAPIEX := $(DESTDIR)$(PREFIX)/lib/libpapiex.so
 DEPS = $(LIBMONITOR) $(LIBPFM) $(LIBPAPI) $(LIBPAPIEX)
 #
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 PAPI_PREFIX := $(PREFIX)
 PAPI_INC_PATH ?= $(PAPI_PREFIX)/include
 PAPI_LIB_PATH ?= $(PAPI_PREFIX)/lib
@@ -26,38 +36,44 @@ MONITOR_PREFIX := $(PREFIX)
 MONITOR_INC_PATH ?= $(MONITOR_PREFIX)/include
 MONITOR_LIB_PATH ?= $(MONITOR_PREFIX)/lib
 #
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+PAPI_CONFIGURE_ARGS = --with-static-user-events --with-static-papi-events --enable-perfevent_rdpmc=no --disable-perf_event_uncore --prefix=$(PAPI_PREFIX) --with-pfm-root=$(shell pwd)/libpfm --with-debug=yes
+else
 PAPI_CONFIGURE_ARGS = --with-static-user-events --with-static-papi-events --enable-perfevent_rdpmc=no --disable-perf_event_uncore --prefix=$(PAPI_PREFIX) --with-pfm-root=$(shell pwd)/libpfm --with-debug=no
 endif
+endif
 
-export PREFIX CC OCC SHELL DEFINES
+export PREFIX CC OCC SHELL CONFIG_PAPIEX_PAPI CONFIG_PAPIEX_DEBUG
 
 .PHONY: monitor papiex papi check libpfm install dist
 .PHONY: docker-clean docker-distclean docker-dist docker-check docker-test-dist
 
 install: papiex
 
-dist: $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib
+$(RELEASE) dist: 
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	mv $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/bin.old
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
-	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+	for f in papi_command_line papi_native_avail papi_avail papi_component_avail check_events showevtinfo ; do strip $(DESTDIR)$(PREFIX)/bin.old/$$f; mv $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+	rm -rf $(DESTDIR)$(PREFIX)/bin.old
+else
+	rm -rf $(DESTDIR)$(PREFIX)/bin
 endif
-	for f in monitor-link monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
-	rm -f $(DESTDIR)$(PREFIX)/lib/libmonitor.la
+#	for f in monitor-run; do cp $(DESTDIR)$(PREFIX)/bin.old/$$f $(DESTDIR)$(PREFIX)/bin/$$f; done
+	-rm -f $(DESTDIR)$(PREFIX)/lib/lib*.a $(DESTDIR)$(PREFIX)/lib/lib*.la
 	for f in $(DESTDIR)$(PREFIX)/lib/*; do strip $$f; done
-	rm -r $(DESTDIR)$(PREFIX)/bin.old
 	rm -rf $(DESTDIR)$(PREFIX)/include
 	rm -rf $(DESTDIR)$(PREFIX)/share
 	cd $(DESTDIR)$(PREFIX)/..; rm -f $(RELEASE); tar cvfz $(RELEASE) `basename $(PREFIX)`
 
-dist-test:
+test-$(RELEASE) dist-test:
 	cd papiex/src; tar cvfz ../../test-$(RELEASE) tests
 
 check: 
 	cd papiex; $(MAKE) PREFIX=$(PREFIX) LIBPAPIEX=$(LIBPAPIEX) check
 
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 papiex $(LIBPAPIEX): papi monitor
 else
 papiex $(LIBPAPIEX): monitor
@@ -65,44 +81,52 @@ endif
 	cd papiex; $(MAKE) CC=$(CC) OCC=$(OCC) MONITOR_INC_PATH=$(MONITOR_INC_PATH) MONITOR_LIB_PATH=$(MONITOR_LIB_PATH) PAPI_INC_PATH=$(PAPI_INC_PATH) PAPI_LIB_PATH=$(PAPI_LIB_PATH) install
 
 monitor/Makefile:
-	cd monitor; ./configure --prefix=$(MONITOR_PREFIX)
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+	cd monitor; ./configure --prefix=$(MONITOR_PREFIX) --disable-link-static
+else
+	cd monitor; ./configure --prefix=$(MONITOR_PREFIX) --disable-link-static --disable-debug
+endif
 monitor $(LIBMONITOR): monitor/Makefile
 	cd monitor; $(MAKE) install
 
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 papi/src/Makefile:
 	cd papi/src ; ./configure $(PAPI_CONFIGURE_ARGS)
 papi $(LIBPAPI): libpfm papi/src/Makefile
 	$(MAKE) -C papi/src install-lib install-utils
 
 libpfm $(LIBPFM):
-	$(MAKE) -C libpfm OPTIM=-O2 LDCONFIG=true install-lib 
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_DEBUG)))
+	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=y OPTIM=-O2 install-lib
+else
+	$(MAKE) -C libpfm CONFIG_PFMLIB_DEBUG=n OPTIM=-O2 install-lib
+endif
 	$(MAKE) -C libpfm/examples OPTIM=-O2 EXAMPLESDIR=$(DESTDIR)$(PREFIX)/bin install-examples 
 endif
 
 .PHONY: clean
 clean:
 	-cd monitor; $(MAKE) clean
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	-cd libpfm; $(MAKE) clean
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
 	-cd papi/src; $(MAKE) clean
-	-cd papiex; $(MAKE) clean
 endif
+	-cd papiex; $(MAKE) clean
 	-rm -f *~
 
 .PHONY: distclean clobber
 distclean clobber: clean
 	-cd monitor; $(MAKE) distclean
-ifneq (,$(findstring HAVE_PAPI,$(DEFINES)))
+ifneq (,$(findstring y,$(CONFIG_PAPIEX_PAPI)))
 	-cd libpfm; $(MAKE) distclean
 	-cd papi/src; $(MAKE) distclean
 endif
 	-cd papiex; $(MAKE) distclean
 	rm -rf papiex-epmt-install test-$(RELEASE) $(RELEASE)
 
-DOCKER_BUILD:=docker build -f
-# if on m-chip mac... use this
-#DOCKER_BUILD:=docker build --platform linux/x86_64 -f
+
+
+
 
 #
 # Docker targets
@@ -112,23 +136,25 @@ DOCKER_BUILD:=docker build -f
 # meaning the source could be contaminated, but the distclean target should
 # ensure everything is cleaned up. Also, the formal release target should check
 # for any diffs against the repo and complain.
-$(RELEASE) test-$(RELEASE) docker-dist:
+DOCKER_MAKE = make OS_TARGET=$(OS_TARGET) CONFIG_PAPIEX_PAPI=$(CONFIG_PAPIEX_PAPI) CONFIG_PAPIEX_DEBUG=$(CONFIG_PAPIEX_DEBUG) 
+
+docker-dist:
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-build -t $(OS_TARGET)-papiex-build .
-	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean install dist dist-test
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) distclean install dist dist-test
 
 docker-test-dist: $(RELEASE) test-$(RELEASE)
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
-	docker run --privileged --rm -it $(OS_TARGET)-papiex-test
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) --privileged $(OS_TARGET)-papiex-test
 
 docker-check:
 	$(DOCKER_BUILD) Dockerfiles/Dockerfile.$(OS_TARGET)-papiex-test -t $(OS_TARGET)-papiex-test --build-arg release=$(RELEASE) .
-	docker run --privileged --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh make OS_TARGET=$(OS_TARGET) check
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-test /tmp/init.sh $(DOCKER_MAKE) check
 
 docker-clean:
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) clean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) clean 
 
 docker-distclean:
-	docker run --rm -it -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build make OS_TARGET=$(OS_TARGET) distclean 
+	$(DOCKER_RUN) $(DOCKER_RUN_OPTS) -v `pwd`:/build -w /build $(OS_TARGET)-papiex-build $(DOCKER_MAKE) distclean 
 
 
 

@@ -123,7 +123,9 @@ void papiex_thread_init_routine(int tid, void *data)
 
   // go
   
+#ifdef HAVE_PAPI
   papiex_start(0,"");
+#endif
   LIBPAPIEX_DEBUG("THREAD(%d) INIT END",real_tid);
 }
 

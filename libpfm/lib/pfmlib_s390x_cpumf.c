@@ -168,6 +168,8 @@ static int pfm_cpumcf_init(void *this)
 	/* counters based on second version number */
 	csvn_set = cpumcf_svn_generic_counters;
 	csvn_set_count = LIBPFM_ARRAY_SIZE(cpumcf_svn_generic_counters);
+	if (csvn < 6)	/* Crypto counter set enlarged for SVN == 6 */
+		csvn_set_count -= CPUMF_SVN6_ECC;
 
 	/* check and assign a machine-specific extended counter set */
 	switch (get_machine_type()) {
@@ -192,8 +194,19 @@ static int pfm_cpumcf_init(void *this)
 		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z13_counters);
 		break;
 	case 3906:  /* IBM z14  */
+	case 3907:  /* IBM z14 ZR1  */
 		ext_set = cpumcf_z14_counters;
 		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z14_counters);
+		break;
+	case 8561:  /* IBM Machine types 8561 and 8562 */
+	case 8562:
+		ext_set = cpumcf_z15_counters;
+		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z15_counters);
+		break;
+	case 3931:  /* IBM Machine types 3931 and 3932 */
+	case 3932:
+		ext_set = cpumcf_z16_counters;
+		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z16_counters);
 		break;
 	default:
 		/* No extended counter set for this machine type or there
@@ -348,6 +361,7 @@ pfmlib_pmu_t s390x_cpum_cf_support = {
 	.pmu	   = PFM_PMU_S390X_CPUM_CF,
 	.type	   = PFM_PMU_TYPE_CORE,
 	.flags	   = PFMLIB_PMU_FL_ARCH_DFL,
+	.supported_plm = PFM_PLM3,
 
 	.num_cntrs	 = 0,	  /* no general-purpose counters */
 	.num_fixed_cntrs = CPUMF_COUNTER_MAX,	/* fixed counters only */
@@ -368,6 +382,7 @@ pfmlib_pmu_t s390x_cpum_cf_support = {
 	.validate_table		= pfm_cpumcf_validate_table,
 	.get_event_info		= pfm_cpumf_get_event_info,
 	.get_event_attr_info	= pfm_cpumf_get_event_attr_info,
+	 PFMLIB_VALID_PERF_PATTRS(pfm_s390x_perf_validate_pattrs),
 };
 
 pfmlib_pmu_t s390x_cpum_sf_support = {
@@ -394,4 +409,5 @@ pfmlib_pmu_t s390x_cpum_sf_support = {
 	.validate_table		= pfm_cpumf_validate_table,
 	.get_event_info		= pfm_cpumf_get_event_info,
 	.get_event_attr_info	= pfm_cpumf_get_event_attr_info,
+	 PFMLIB_VALID_PERF_PATTRS(pfm_s390x_perf_validate_pattrs),
 };

@@ -99,6 +99,7 @@ typedef struct {
 #define INTEL_X86_GRP_REQ		0x08000	/* grpid field split as (grpid & 0xff) | (required_grpid & 0xff) << 8 */
 #define INTEL_X86_FILT_UMASK		0x10000	/* Event use filter which may be encoded in umask */
 #define INTEL_X86_FORCE_FILT0		0x20000	/* Event must set filter0 even if zero value */
+#define INTEL_X86_SPEC			0x40000 /* Event includes speculative execution */
 
 typedef union pfm_intel_x86_reg {
 	unsigned long long val;			/* complete register value */
@@ -188,6 +189,7 @@ typedef union pfm_intel_x86_reg {
 #define INTEL_FIXED3_ATTRS	(INTEL_FIXED2_ATTRS|_INTEL_X86_ATTR_T)
 #define INTEL_V3_ATTRS 		(INTEL_V2_ATTRS|_INTEL_X86_ATTR_T)
 #define INTEL_V4_ATTRS 		(INTEL_V3_ATTRS | _INTEL_X86_ATTR_INTX | _INTEL_X86_ATTR_INTXCP)
+#define INTEL_V5_ATTRS 		(INTEL_V2_ATTRS | _INTEL_X86_ATTR_INTX | _INTEL_X86_ATTR_INTXCP)
 #define INTEL_SKL_FE_ATTRS 	(INTEL_V2_ATTRS         |\
 				 _INTEL_X86_ATTR_INTX   |\
 				 _INTEL_X86_ATTR_INTXCP |\
@@ -226,7 +228,8 @@ typedef union pfm_intel_x86_reg {
 /*
  * Intel x86 specific pmu flags (pmu->flags 16 MSB)
  */
-#define INTEL_X86_PMU_FL_ECMASK 0x10000	/* edge requires cmask >=1 */
+#define INTEL_X86_PMU_FL_ECMASK  0x10000 /* edge requires cmask >=1 */
+#define INTEL_X86_PMU_FL_EXTPEBS 0x20000 /* PMU supports ExtendedPEBS */
 
 /*
  * default ldlat value for PEBS-LL events. Used when ldlat= is missing
