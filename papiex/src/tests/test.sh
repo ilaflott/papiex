@@ -111,8 +111,8 @@ declare -a sieves=(
 )
 declare -a sshtests=(
     "ssh -o PreferredAuthentications=publickey localhost /bin/true"
-    "ssh -o PreferredAuthentications=publickey cshsucks@localhost /bin/true"
-    "ssh -o PreferredAuthentications=publickey tcshsucks@localhost /bin/true"
+    "ssh -o PreferredAuthentications=publickey cshuser@localhost /bin/true"
+    "ssh -o PreferredAuthentications=publickey tcshuser@localhost /bin/true"
 )
 
 function papiex()
